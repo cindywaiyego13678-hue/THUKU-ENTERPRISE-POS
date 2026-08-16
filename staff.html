@@ -35,6 +35,7 @@
             <label>Role</label>
             <select id="ns-role">
               <option value="cashier">Cashier — POS only</option>
+              <option value="manager">Manager — POS + Inventory</option>
               <option value="admin">Admin — full access</option>
             </select>
           </div>
@@ -57,12 +58,12 @@
     let currentStaff = null;
     let allStaff = [];
 
-    const STAFF_FUNCTION_URL = 'https://ipbqeyeanlyvklrjcbxl.supabase.co/functions/v1/hyper-handler';
+    const STAFF_FUNCTION_URL = 'https://ipbqeyeanlyvklrjcbxl.supabase.co/functions/v1/create-staff';
 
     (async () => {
       currentStaff = await requireAuth(['admin']);
       if (!currentStaff) return;
-      document.getElementById('staff-name').textContent = `${currentStaff.full_name} (${currentStaff.role})`;
+      document.getElementById('staff-name').textContent = `${currentStaff.full_name} (owner)`;
       renderNav();
       await loadStaff();
     })();
