@@ -26,7 +26,7 @@
       <div class="card">
         <div id="low-stock-banner" style="display:none; background:#fef3c7; color:#92400e; border-radius:8px; padding:8px 12px; font-size:0.85rem; margin-bottom:12px; font-weight:600;"></div>
 
-        <div style="display:flex; gap:8px; margin-bottom:12px;">
+        <div style="display:flex; gap:8px; margin-bottom:12px;" id="dept-tabs">
           <button type="button" class="dept-tab active" data-dept="" onclick="setDeptFilter('', this)" style="flex:1;">All</button>
           <button type="button" class="dept-tab" data-dept="Household Items" onclick="setDeptFilter('Household Items', this)" style="flex:1;">Household</button>
           <button type="button" class="dept-tab" data-dept="Clothes & Shoes" onclick="setDeptFilter('Clothes &amp; Shoes', this)" style="flex:1;">Clothes &amp; Shoes</button>
@@ -161,6 +161,15 @@
       if (!currentStaff) return;
       document.getElementById('staff-name').textContent = `${currentStaff.full_name} (${currentStaff.role})`;
       renderNav(currentStaff.role);
+
+      // Department-locked staff (managers/cashiers with a department set)
+      // don't get to see or pick the other shop's tab — RLS already blocks
+      // the data, this just keeps the UI from showing a dead-end option.
+      if (currentStaff.role !== 'admin' && currentStaff.department) {
+        document.getElementById('dept-tabs').style.display = 'none';
+        deptFilter = currentStaff.department;
+      }
+
       await loadProducts();
       renderHeldSales();
     })();
@@ -530,4 +539,3 @@
   </script>
 </body>
 </html>
-
