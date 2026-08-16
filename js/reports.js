@@ -33,13 +33,16 @@ function renderReportsNav(role) {
 async function loadDailyReport() {
   const dateInput = document.getElementById('report-date').value;
   if (!dateInput) { alert('Please select a date.'); return; }
+  const deptFilter = document.getElementById('report-department').value;
+
+  document.getElementById('dept-filter-note').style.display = deptFilter ? 'block' : 'none';
 
   const dayStart = new Date(dateInput + 'T00:00:00');
   const dayEnd = new Date(dateInput + 'T23:59:59.999');
 
   const { data: sales, error } = await supabaseClient
     .from('sales')
-    .select('*, staff(full_name), sale_items(product_id, quantity, unit_price, products(cost))')
+    .select('*, staff(full_name), sale_items(product_id, quantity, unit_price, products(cost, department))')
     .in('status', ['completed', 'refunded'])
     .gte('created_at', dayStart.toISOString())
     .lte('created_at', dayEnd.toISOString())
@@ -51,39 +54,80 @@ async function loadDailyReport() {
     return;
   }
 
-  renderReport(sales || []);
+  let lossQuery = supabaseClient
+    .from('stock_losses')
+    .select('*')
+    .gte('created_at', dayStart.toISOString())
+    .lte('created_at', dayEnd.toISOString())
+    .order('created_at', { ascending: false });
+  if (deptFilter) lossQuery = lossQuery.eq('department', deptFilter);
+
+  const { data: losses, error: lossError } = await lossQuery;
+  if (lossError) console.error(lossError);
+
+  renderReport(sales || [], deptFilter);
+  renderLosses(losses || []);
 }
 
-function renderReport(sales) {
+function renderReport(sales, deptFilter) {
   const completedSales = sales.filter(s => s.status === 'completed');
-  const transactions = completedSales.length;
-  const revenue = completedSales.reduce((sum, s) => sum + Number(s.total_amount), 0);
-  const itemsSold = completedSales.reduce((sum, s) =>
-    sum + (s.sale_items || []).reduce((isum, item) => isum + (item.quantity || 1), 0), 0);
-  const averageSale = transactions > 0 ? revenue / transactions : 0;
-  const totalDiscounts = completedSales.reduce((sum, s) => sum + Number(s.discount_amount || 0), 0);
-  const grossProfit = completedSales.reduce((sum, s) => {
-    const saleProfit = (s.sale_items || []).reduce((isum, item) => {
-      const cost = Number(item.products?.cost || 0);
-      return isum + (Number(item.unit_price) - cost) * (item.quantity || 1);
+
+  let transactions = 0;
+  let revenue = 0;
+  let itemsSold = 0;
+  let totalDiscounts = 0;
+  let totalMarkup = 0;
+  let itemLevelProfit = 0;
+
+  completedSales.forEach(s => {
+    const items = s.sale_items || [];
+    const relevantItems = deptFilter ? items.filter(i => i.products?.department === deptFilter) : items;
+    if (!relevantItems.length) return; // sale has nothing from this department
+
+    transactions += 1;
+
+    const saleSubtotal = items.reduce((sum, i) => sum + Number(i.unit_price) * (i.quantity || 1), 0);
+    const relevantSubtotal = relevantItems.reduce((sum, i) => sum + Number(i.unit_price) * (i.quantity || 1), 0);
+    const share = saleSubtotal > 0 ? relevantSubtotal / saleSubtotal : 0;
+
+    revenue += relevantSubtotal;
+    itemsSold += relevantItems.reduce((sum, i) => sum + (i.quantity || 1), 0);
+
+    // Discount/markup are recorded at the sale level, so when filtering to a
+    // single department we prorate them by that department's share of the sale.
+    totalDiscounts += Number(s.discount_amount || 0) * share;
+    totalMarkup += Number(s.markup_amount || 0) * share;
+
+    itemLevelProfit += relevantItems.reduce((sum, i) => {
+      const cost = Number(i.products?.cost || 0);
+      return sum + (Number(i.unit_price) - cost) * (i.quantity || 1);
     }, 0);
-    return sum + saleProfit;
-  }, 0);
+  });
+
+  const averageSale = transactions > 0 ? revenue / transactions : 0;
+  // Gross profit = item-level margin, adjusted for the actual discount given
+  // and markup added on top of listed prices for this selection.
+  const grossProfit = itemLevelProfit - totalDiscounts + totalMarkup;
 
   document.getElementById('total-sales').textContent = transactions;
-  document.getElementById('total-revenue').textContent = `KSh ${revenue.toLocaleString()}`;
+  document.getElementById('total-revenue').textContent = `KSh ${Math.round(revenue).toLocaleString()}`;
   document.getElementById('items-sold').textContent = itemsSold;
   document.getElementById('average-sale').textContent = `KSh ${Math.round(averageSale).toLocaleString()}`;
-  document.getElementById('total-discounts').textContent = `KSh ${totalDiscounts.toLocaleString()}`;
+  document.getElementById('total-discounts').textContent = `KSh ${Math.round(totalDiscounts).toLocaleString()}`;
+  document.getElementById('total-markup').textContent = `KSh ${Math.round(totalMarkup).toLocaleString()}`;
   document.getElementById('total-profit').textContent = `KSh ${Math.round(grossProfit).toLocaleString()}`;
 
   const tbody = document.getElementById('sales-table');
-  if (!sales.length) {
+  const visibleSales = deptFilter
+    ? sales.filter(s => (s.sale_items || []).some(i => i.products?.department === deptFilter))
+    : sales;
+
+  if (!visibleSales.length) {
     tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:20px;">No sales for this date.</td></tr>';
     return;
   }
 
-  tbody.innerHTML = sales.map(s => {
+  tbody.innerHTML = visibleSales.map(s => {
     const receipt = s.mpesa_receipt || (s.payment_method === 'cash' ? 'CASH' : '—');
     const cashier = s.staff?.full_name || '—';
     const time = new Date(s.created_at).toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' });
@@ -100,6 +144,30 @@ function renderReport(sales) {
             ? '<span class="badge low">refunded</span>'
             : `<button class="danger" style="padding:4px 8px; font-size:0.75rem;" onclick='processRefund(${JSON.stringify(s.id)})'>Refund</button>`}
         </td>
+      </tr>`;
+  }).join('');
+}
+
+function renderLosses(losses) {
+  const totalLossValue = losses.reduce((sum, l) => sum + Number(l.cost_value || 0), 0);
+  document.getElementById('total-losses').textContent = `KSh ${Math.round(totalLossValue).toLocaleString()}`;
+
+  const tbody = document.getElementById('losses-table');
+  if (!losses.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:20px;">No losses recorded for this date.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = losses.map(l => {
+    const time = new Date(l.created_at).toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' });
+    return `
+      <tr>
+        <td>${escapeHtmlReports(l.product_name)}</td>
+        <td style="font-size:0.8rem;">${escapeHtmlReports(l.department || '—')}</td>
+        <td>${l.quantity}</td>
+        <td>KSh ${Number(l.cost_value || 0).toLocaleString()}</td>
+        <td>${escapeHtmlReports(l.reason || '—')}</td>
+        <td>${time}</td>
       </tr>`;
   }).join('');
 }
