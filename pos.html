@@ -24,20 +24,8 @@
 
     <div class="grid" style="grid-template-columns: 1.3fr 1fr;">
       <div class="card">
-<div id="low-stock-banner"
-     style="
-        display:none;
-        background:#fff5f5;
-        border:2px solid #ef4444;
-        border-left:6px solid #dc2626;
-        color:#7f1d1d;
-        border-radius:10px;
-        padding:15px;
-        margin-bottom:15px;
-        box-shadow:0 2px 8px rgba(0,0,0,.08);
-        overflow-x:auto;
-">
-</div>
+        <div id="low-stock-banner" style="display:none; background:#fef3c7; color:#92400e; border-radius:8px; padding:8px 12px; font-size:0.85rem; margin-bottom:12px; font-weight:600;"></div>
+
         <div style="display:flex; gap:8px; margin-bottom:12px;">
           <button type="button" class="dept-tab active" data-dept="" onclick="setDeptFilter('', this)" style="flex:1;">All</button>
           <button type="button" class="dept-tab" data-dept="Household Items" onclick="setDeptFilter('Household Items', this)" style="flex:1;">Household</button>
@@ -65,10 +53,17 @@
         </div>
         <div id="cart-items"></div>
 
-        <div class="field" style="margin-top:10px;">
-          <label>Discount (Ksh)</label>
-          <input type="number" id="discount-amount" min="0" placeholder="0" value="0">
+        <div class="grid grid-2" style="margin-top:10px;">
+          <div class="field">
+            <label>Discount (Ksh)</label>
+            <input type="number" id="discount-amount" min="0" placeholder="0" value="0">
+          </div>
+          <div class="field">
+            <label>Markup (Ksh)</label>
+            <input type="number" id="markup-amount" min="0" placeholder="0" value="0">
+          </div>
         </div>
+        <p style="font-size:0.75rem; color:var(--muted); margin-top:-8px;">Use Discount if selling below listed price, or Markup if selling above it.</p>
 
         <div style="border-top:1px solid var(--border); margin-top:10px; padding-top:10px;">
           <div style="display:flex; justify-content:space-between; font-size:0.9rem; color:var(--muted);">
@@ -78,6 +73,10 @@
           <div style="display:flex; justify-content:space-between; font-size:0.9rem; color:var(--muted);">
             <span>Discount</span>
             <span id="cart-discount">− Ksh 0</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:0.9rem; color:var(--muted);">
+            <span>Markup</span>
+            <span id="cart-markup">+ Ksh 0</span>
           </div>
           <div style="display:flex; justify-content:space-between; font-weight:700; font-size:1.1rem; margin-top:4px;">
             <span>Total</span>
@@ -148,80 +147,14 @@
     }
 
     function updateLowStockBanner() {
-    const banner = document.getElementById("low-stock-banner");
-
-    const lowItems = allProducts.filter(product =>
-    Number(product.stock_quantity) <= Number(product.minimum_stock ?? 5)
-);
-    if (lowItems.length === 0) {
-        banner.style.display = "none";
-        return;
+      const banner = document.getElementById('low-stock-banner');
+      const lowItems = allProducts.filter(p => p.stock_quantity <= (p.reorder_level ?? 2));
+      if (!lowItems.length) { banner.style.display = 'none'; return; }
+      const names = lowItems.slice(0, 4).map(p => escapeHtml(p.name)).join(', ');
+      const extra = lowItems.length > 4 ? ` and ${lowItems.length - 4} more` : '';
+      banner.innerHTML = `⚠️ Low stock: ${names}${extra}`;
+      banner.style.display = 'block';
     }
-
-    let html = `
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <span style="font-size:18px;font-weight:bold;">
-                🔔 Low Stock Alert
-            </span>
-
-            <span style="
-                background:#dc2626;
-                color:white;
-                padding:5px 12px;
-                border-radius:20px;
-                font-weight:bold;">
-                ${lowItems.length}
-            </span>
-        </div>
-
-        <table style="width:100%;border-collapse:collapse;">
-            <thead>
-                <tr style="background:#fee2e2;">
-                    <th style="padding:8px;text-align:left;">Product</th>
-                    <th style="padding:8px;text-align:center;">Stock</th>
-                    <th style="padding:8px;text-align:center;">Minimum</th>
-                    <th style="padding:8px;text-align:center;">Status</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
-
-    lowItems.forEach(product => {
-
-        html += `
-            <tr style="border-top:1px solid #ddd;">
-                <td style="padding:8px;">
-                    ${escapeHtml(product.name)}
-                </td>
-
-                <td style="padding:8px;text-align:center;color:red;font-weight:bold;">
-                    ${product.stock_quantity}
-                </td>
-
-                <td style="padding:8px;text-align:center;">
-                     ${product.minimum_stock ?? 5}
-                </td>
-
-                <td style="padding:8px;text-align:center;font-weight:bold;">
-                    ${
-                        product.stock_quantity == 0
-                        ? "❌ Out of Stock"
-                        : "⚠ Low Stock"
-                    }
-                </td>
-            </tr>
-        `;
-
-    });
-
-    html += `
-            </tbody>
-        </table>
-    `;
-
-    banner.innerHTML = html;
-    banner.style.display = "block";
-}
 
     (async () => {
       currentStaff = await requireAuth(['admin','manager','cashier']);
@@ -234,7 +167,7 @@
 
     function renderNav(role) {
       const tabs = [{ href: 'pos.html', label: 'POS' }];
-      if (role === 'admin' || role === 'manager') tabs.push({ href: 'inventory.html', label: 'Inventory' });
+      if (role === 'admin') tabs.push({ href: 'inventory.html', label: 'Inventory' });
       if (role === 'admin') tabs.push({ href: 'dashboard.html', label: 'Dashboard' });
       if (role === 'admin') tabs.push({ href: 'staff.html', label: 'Staff' });
       if (role === 'admin') tabs.push({ href: 'reports.html', label: 'Reports' });
@@ -325,6 +258,11 @@
       return isNaN(val) || val < 0 ? 0 : val;
     }
 
+    function getMarkup() {
+      const val = parseFloat(document.getElementById('markup-amount').value);
+      return isNaN(val) || val < 0 ? 0 : val;
+    }
+
     function renderCart() {
       const el = document.getElementById('cart-items');
       if (!cart.length) {
@@ -350,12 +288,15 @@
     function updateTotals() {
       const subtotal = getSubtotal();
       const discount = Math.min(getDiscount(), subtotal);
-      const total = subtotal - discount;
+      const markup = getMarkup();
+      const total = subtotal - discount + markup;
       document.getElementById('cart-subtotal').textContent = `Ksh ${subtotal.toLocaleString()}`;
       document.getElementById('cart-discount').textContent = `− Ksh ${discount.toLocaleString()}`;
+      document.getElementById('cart-markup').textContent = `+ Ksh ${markup.toLocaleString()}`;
       document.getElementById('cart-total').textContent = `Ksh ${total.toLocaleString()}`;
     }
     document.getElementById('discount-amount').addEventListener('input', updateTotals);
+    document.getElementById('markup-amount').addEventListener('input', updateTotals);
 
     // ---------- Hold / Resume sales ----------
     function getHeldSales() {
@@ -377,6 +318,7 @@
         label,
         cart: cart.map(item => ({ productId: item.product.id, quantity: item.quantity })),
         discount: getDiscount(),
+        markup: getMarkup(),
         customerName: document.getElementById('customer-name').value,
         customerPhone: document.getElementById('customer-phone').value,
         heldAt: new Date().toISOString()
@@ -385,6 +327,7 @@
 
       cart = [];
       document.getElementById('discount-amount').value = 0;
+      document.getElementById('markup-amount').value = 0;
       document.getElementById('customer-name').value = '';
       document.getElementById('customer-phone').value = '';
       renderCart();
@@ -422,6 +365,7 @@
         .filter(Boolean);
 
       document.getElementById('discount-amount').value = entry.discount || 0;
+      document.getElementById('markup-amount').value = entry.markup || 0;
       document.getElementById('customer-name').value = entry.customerName || '';
       document.getElementById('customer-phone').value = entry.customerPhone || '';
 
@@ -453,7 +397,8 @@
 
       const subtotal = getSubtotal();
       const discount = Math.min(getDiscount(), subtotal);
-      const total = subtotal - discount;
+      const markup = getMarkup();
+      const total = subtotal - discount + markup;
       const paymentMethod = document.getElementById('payment-method').value;
       const customerName = document.getElementById('customer-name').value.trim() || null;
       const customerPhone = document.getElementById('customer-phone').value.trim() || null;
@@ -466,6 +411,7 @@
         total_amount: total,
         subtotal_amount: subtotal,
         discount_amount: discount,
+        markup_amount: markup,
         status: 'completed',
         items: cart.map(item => ({
           product_id: item.product.id,
@@ -496,11 +442,11 @@
           await supabaseClient.from('products').update({ stock_quantity: newQty }).eq('id', it.product_id);
         }
 
-        showReceipt({ items: receiptItems, subtotal, discount, total, paymentMethod, customerName, customerPhone, date: new Date() });
+        showReceipt({ items: receiptItems, subtotal, discount, markup, total, paymentMethod, customerName, customerPhone, date: new Date() });
       } catch (err) {
         console.warn('Online checkout failed, queueing offline', err);
         await queueSaleOffline(saleData);
-        showReceipt({ items: receiptItems, subtotal, discount, total, paymentMethod, customerName, customerPhone, date: new Date(), offline: true });
+        showReceipt({ items: receiptItems, subtotal, discount, markup, total, paymentMethod, customerName, customerPhone, date: new Date(), offline: true });
         const pending = await getPendingSales();
         updateSyncBadge(pending.length);
       }
@@ -508,6 +454,7 @@
       cart = [];
       renderCart();
       document.getElementById('discount-amount').value = 0;
+      document.getElementById('markup-amount').value = 0;
       document.getElementById('customer-name').value = '';
       document.getElementById('customer-phone').value = '';
       btn.disabled = false;
@@ -531,6 +478,7 @@
         <div style="border-top:1px dashed var(--border); border-bottom:1px dashed var(--border); padding:8px 0; margin:8px 0; white-space:pre-wrap;">${escapeHtml(lines)}</div>
         <div style="display:flex; justify-content:space-between;"><span>Subtotal</span><span>Ksh ${data.subtotal.toLocaleString()}</span></div>
         ${data.discount > 0 ? `<div style="display:flex; justify-content:space-between;"><span>Discount</span><span>− Ksh ${data.discount.toLocaleString()}</span></div>` : ''}
+        ${data.markup > 0 ? `<div style="display:flex; justify-content:space-between;"><span>Markup</span><span>+ Ksh ${data.markup.toLocaleString()}</span></div>` : ''}
         <div style="display:flex; justify-content:space-between; font-weight:700; margin-top:4px;"><span>TOTAL</span><span>Ksh ${data.total.toLocaleString()}</span></div>
         <div style="margin-top:8px; font-size:0.8rem; color:var(--muted);">Payment: ${escapeHtml(data.paymentMethod)}</div>
         ${data.customerName ? `<div style="font-size:0.8rem; color:var(--muted);">Customer: ${escapeHtml(data.customerName)}</div>` : ''}
@@ -564,6 +512,7 @@
       const lines = d.items.map(it => `${it.name} x${it.quantity} - Ksh ${(it.price * it.quantity).toLocaleString()}`).join('%0A');
       let text = `*Thuku Enterprise Receipt*%0A${d.date.toLocaleString('en-KE')}%0A%0A${lines}%0A%0ASubtotal: Ksh ${d.subtotal.toLocaleString()}`;
       if (d.discount > 0) text += `%0ADiscount: -Ksh ${d.discount.toLocaleString()}`;
+      if (d.markup > 0) text += `%0AMarkup: +Ksh ${d.markup.toLocaleString()}`;
       text += `%0A*TOTAL: Ksh ${d.total.toLocaleString()}*%0A%0AThank you for your business!`;
 
       const phone = d.customerPhone ? d.customerPhone.replace(/\D/g, '') : '';
@@ -581,3 +530,4 @@
   </script>
 </body>
 </html>
+
