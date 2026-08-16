@@ -33,14 +33,21 @@
           <div class="field"><label>Temporary password</label><input id="ns-password" type="text" placeholder="At least 6 characters"></div>
           <div class="field">
             <label>Role</label>
-            <select id="ns-role">
+            <select id="ns-role" onchange="toggleDeptField()">
               <option value="cashier">Cashier — POS only</option>
               <option value="manager">Manager — POS + Inventory</option>
               <option value="admin">Admin — full access</option>
             </select>
           </div>
+          <div class="field" id="ns-dept-field">
+            <label>Department (shop)</label>
+            <select id="ns-department">
+              <option value="Household Items">Household Items</option>
+              <option value="Clothes & Shoes">Clothes &amp; Shoes</option>
+            </select>
+          </div>
         </div>
-        <p style="font-size:0.8rem; color:var(--muted); margin-top:-4px;">Share this password with them directly — they can change it later.</p>
+        <p style="font-size:0.8rem; color:var(--muted); margin-top:-4px;">Cashiers and managers only see and sell products in their assigned department. Admins always see both. Share the password with them directly — they can change it later.</p>
         <button onclick="addStaff()" id="add-staff-btn">Create Staff Account</button>
         <p class="error-text" id="add-staff-error" style="display:none;"></p>
       </div>
@@ -78,6 +85,13 @@
       `;
     }
 
+    function toggleDeptField() {
+      const role = document.getElementById('ns-role').value;
+      const field = document.getElementById('ns-dept-field');
+      // Admins always have full access — department field isn't relevant to them.
+      field.style.display = role === 'admin' ? 'none' : 'block';
+    }
+
     function toggleAddForm() {
       const f = document.getElementById('add-staff-form');
       f.style.display = f.style.display === 'none' ? 'block' : 'none';
@@ -95,12 +109,13 @@
       if (!staffRows.length) { el.innerHTML = '<div class="empty-state">No staff yet.</div>'; return; }
       el.innerHTML = `
         <table>
-          <thead><tr><th>Name</th><th>Role</th><th>Status</th><th></th></tr></thead>
+          <thead><tr><th>Name</th><th>Role</th><th>Department</th><th>Status</th><th></th></tr></thead>
           <tbody>
             ${staffRows.map(s => `
               <tr>
                 <td>${escapeHtml(s.full_name)}</td>
                 <td><span class="badge in_stock">${s.role}</span></td>
+                <td style="font-size:0.8rem;">${s.role === 'admin' ? 'Both (admin)' : escapeHtml(s.department || '⚠️ none set')}</td>
                 <td>${s.is_active ? '<span class="badge in_stock">active</span>' : '<span class="badge low">inactive</span>'}</td>
                 <td style="display:flex; gap:6px;">
                   ${s.id !== currentStaff.id ? `
@@ -121,6 +136,8 @@
       const email = document.getElementById('ns-email').value.trim();
       const password = document.getElementById('ns-password').value;
       const role = document.getElementById('ns-role').value;
+      // Admins always see both departments, so we don't send one for them.
+      const department = role === 'admin' ? null : document.getElementById('ns-department').value;
 
       if (!full_name || !email || !password) {
         errorEl.textContent = 'Please fill in all fields.';
@@ -129,6 +146,11 @@
       }
       if (password.length < 6) {
         errorEl.textContent = 'Password must be at least 6 characters.';
+        errorEl.style.display = 'block';
+        return;
+      }
+      if (role !== 'admin' && !department) {
+        errorEl.textContent = 'Please select a department for this staff member.';
         errorEl.style.display = 'block';
         return;
       }
@@ -145,7 +167,7 @@
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${session.access_token}`
           },
-          body: JSON.stringify({ action: 'create', full_name, email, password, role })
+          body: JSON.stringify({ action: 'create', full_name, email, password, role, department })
         });
         const result = await res.json();
 
@@ -155,6 +177,8 @@
         document.getElementById('ns-name').value = '';
         document.getElementById('ns-email').value = '';
         document.getElementById('ns-password').value = '';
+        document.getElementById('ns-role').value = 'cashier';
+        toggleDeptField();
         toggleAddForm();
         await loadStaff();
       } catch (err) {
