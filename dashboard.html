@@ -42,6 +42,10 @@
         <div class="label">Today's Gross Profit</div>
         <div class="value good" id="stat-today-profit">—</div>
       </div>
+      <div class="stat-card">
+        <div class="label">Today's Losses</div>
+        <div class="value alert" id="stat-today-losses">—</div>
+      </div>
     </div>
 
     <div class="grid" style="grid-template-columns: 1.2fr 1fr;">
@@ -127,6 +131,10 @@
         .select('quantity, unit_price, products(cost), sales!inner(created_at, status)')
         .gte('sales.created_at', todayStart)
         .eq('sales.status', 'completed');
+      const { data: todayLosses } = await supabaseClient
+        .from('stock_losses')
+        .select('cost_value')
+        .gte('created_at', todayStart);
 
       const todayRevenue = (todaySales || []).reduce((s, r) => s + Number(r.total_amount), 0);
       const weekRevenue = (weekSales || []).reduce((s, r) => s + Number(r.total_amount), 0);
@@ -135,12 +143,14 @@
         const cost = Number(i.products?.cost || 0);
         return s + (Number(i.unit_price) - cost) * (i.quantity || 1);
       }, 0);
+      const todayLossValue = (todayLosses || []).reduce((s, l) => s + Number(l.cost_value || 0), 0);
 
       document.getElementById('stat-today-revenue').textContent = `Ksh ${todayRevenue.toLocaleString()}`;
       document.getElementById('stat-today-count').textContent = (todaySales || []).length;
       document.getElementById('stat-week-revenue').textContent = `Ksh ${weekRevenue.toLocaleString()}`;
       document.getElementById('stat-low-stock').textContent = lowStockCount;
       document.getElementById('stat-today-profit').textContent = `Ksh ${Math.round(todayProfit).toLocaleString()}`;
+      document.getElementById('stat-today-losses').textContent = `Ksh ${Math.round(todayLossValue).toLocaleString()}`;
     }
 
     async function loadRecentSales() {
@@ -245,13 +255,7 @@
                   <td style="font-size:0.82rem;">${items || '—'}</td>
                   <td>Ksh ${Number(t.total_value || 0).toLocaleString()}</td>
                   <td><span class="badge ${badgeClass}">${t.payment_status}</span></td>
-                  <td style="white-space:nowrap;">
-                    ${t.payment_status !== 'paid'
-                      ? `<button class="secondary" style="padding:5px 8px; font-size:0.78rem;" onclick='markTransferPaid(${JSON.stringify(t.id)})'>Mark Paid</button>`
-                      : t.received_into_inventory
-                        ? `<span class="badge in_stock">Received</span>`
-                        : `<button class="secondary" style="padding:5px 8px; font-size:0.78rem;" onclick='receiveTransfer(${JSON.stringify(t.id)})'>Receive into Inventory</button>`}
-                  </td>
+                  <td>${t.payment_status !== 'paid' ? `<button class="secondary" style="padding:5px 8px; font-size:0.78rem;" onclick='markTransferPaid(${JSON.stringify(t.id)})'>Mark Paid</button>` : ''}</td>
                 </tr>`;
             }).join('')}
           </tbody>
@@ -266,14 +270,6 @@
         .eq('id', id);
       if (error) { alert('Error: ' + error.message); return; }
       await loadIncomingTransfers();
-    }
-
-    async function receiveTransfer(id) {
-      if (!confirm('Add these items into shop inventory now? Existing products are matched by name (case-insensitive); anything unmatched will be created as a new product. This can only be done once per transfer.')) return;
-      const { error } = await supabaseClient.rpc('receive_incoming_transfer', { p_transfer_id: id });
-      if (error) { alert('Error: ' + error.message); return; }
-      await loadIncomingTransfers();
-      alert('Inventory updated. Check the Inventory page to review names/prices for any newly created products.');
     }
 
     function escapeHtml(str) {
