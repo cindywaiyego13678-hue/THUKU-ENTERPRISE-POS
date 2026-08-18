@@ -1,10 +1,10 @@
 // ============================================================
-// Service Worker: makes the app shell (HTML/CSS/JS) load
-// instantly with ZERO internet after the first visit.
-// Supabase API calls always go to the network (can't meaningfully
-// cache live data), but the app itself will open offline.
+// Service Worker: Thuku Enterprise
+// Caches the app shell for offline use.
+// Supabase API/auth requests always go to the network.
 // ============================================================
-const CACHE_NAME = 'thuku-enterprise-shell-v3';
+
+const CACHE_NAME = 'thuku-enterprise-shell-v4';
 
 const APP_SHELL = [
   './',
@@ -24,41 +24,93 @@ const APP_SHELL = [
   'icons/icon-512.png'
 ];
 
+// ============================================================
+// INSTALL
+// ============================================================
+
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL))
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll(APP_SHELL))
+      .then(() => self.skipWaiting())
   );
-  self.skipWaiting();
 });
+
+// ============================================================
+// ACTIVATE
+// Deletes all old caches.
+// ============================================================
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((names) =>
-      Promise.all(names.filter((n) => n !== CACHE_NAME).map((n) => caches.delete(n)))
-    )
+    caches.keys()
+      .then((cacheNames) => {
+        return Promise.all(
+          cacheNames
+            .filter((name) => name !== CACHE_NAME)
+            .map((name) => caches.delete(name))
+        );
+      })
+      .then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
+
+// ============================================================
+// FETCH
+// ============================================================
 
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Never intercept Supabase API/auth calls or other cross-origin
-  // requests — those must always go live to the network.
+  // Never intercept requests to Supabase or other external services.
   if (url.origin !== self.location.origin) {
     return;
   }
 
-  // App shell: cache-first, so it opens instantly even offline.
+  // Only handle GET requests.
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
+  // Cache-first strategy for the app shell.
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(event.request).then((response) => {
-        // Cache newly-seen same-origin files too (e.g. future pages)
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-        return response;
-      }).catch(() => cached);
-    })
+    caches.match(event.request)
+      .then((cachedResponse) => {
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+
+        return fetch(event.request)
+          .then((networkResponse) => {
+            // Only cache successful responses.
+            if (
+              networkResponse &&
+              networkResponse.status === 200 &&
+              networkResponse.type === 'basic'
+            ) {
+              const responseToCache = networkResponse.clone();
+
+              caches.open(CACHE_NAME)
+                .then((cache) => {
+                  cache.put(event.request, responseToCache);
+                });
+            }
+
+            return networkResponse;
+          })
+          .catch(() => {
+            // If offline and nothing is cached, return a simple
+            // offline response instead of throwing an error.
+            return new Response(
+              'Thuku Enterprise is currently offline.',
+              {
+                status: 503,
+                headers: {
+                  'Content-Type': 'text/plain'
+                }
+              }
+            );
+          });
+      })
   );
 });
