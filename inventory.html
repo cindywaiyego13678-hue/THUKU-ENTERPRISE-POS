@@ -105,9 +105,17 @@
       </select>
     </div>
     <div class="field">
-      <label>New stock quantity</label>
+      <label>What are you doing?</label>
+      <select id="as-mode" onchange="updateAdjustStockLabel()">
+        <option value="add">➕ Add new stock arriving (most common)</option>
+        <option value="set">✏️ Correct to an exact total (e.g. after a stock take)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label id="as-quantity-label">How many units are being added?</label>
       <input id="as-quantity" type="number" min="0" placeholder="e.g. 15">
     </div>
+    <p id="as-preview" style="font-size:0.85rem; color:var(--muted); margin-top:-8px;"></p>
     <button onclick="saveStockAdjustment()" id="save-stock-btn" style="width:100%;">Save</button>
     <p class="error-text" id="adjust-stock-error" style="display:none;"></p>
   </div>
@@ -355,12 +363,37 @@ function renderNav() {
       document.getElementById('as-product-name').textContent = product.name;
       document.getElementById('as-current-stock').textContent = `Current stock: ${product.stock_quantity}`;
       document.getElementById('as-department').value = product.department || 'Household Items';
-      document.getElementById('as-quantity').value = product.stock_quantity ?? 0;
+      document.getElementById('as-mode').value = 'add';
+      document.getElementById('as-quantity').value = '';
       document.getElementById('adjust-stock-error').style.display = 'none';
+      updateAdjustStockLabel();
 
       document.getElementById('adjust-stock-panel').style.display = 'block';
       document.getElementById('adjust-stock-overlay').style.display = 'block';
     }
+
+    function updateAdjustStockLabel() {
+      const mode = document.getElementById('as-mode').value;
+      const label = document.getElementById('as-quantity-label');
+      label.textContent = mode === 'add' ? 'How many units are being added?' : 'What is the correct total stock count?';
+      updateAdjustStockPreview();
+    }
+
+    function updateAdjustStockPreview() {
+      const product = allProducts.find(p => p.id === adjustingProductId);
+      if (!product) return;
+      const mode = document.getElementById('as-mode').value;
+      const val = parseInt(document.getElementById('as-quantity').value, 10);
+      const previewEl = document.getElementById('as-preview');
+      if (isNaN(val) || val < 0) { previewEl.textContent = ''; return; }
+      if (mode === 'add') {
+        previewEl.textContent = `New total: ${product.stock_quantity} + ${val} = ${product.stock_quantity + val}`;
+      } else {
+        previewEl.textContent = `Stock will be set to exactly ${val} (was ${product.stock_quantity}).`;
+      }
+    }
+
+    document.getElementById('as-quantity').addEventListener('input', updateAdjustStockPreview);
 
     function closeAdjustStockPanel() {
       document.getElementById('adjust-stock-panel').style.display = 'none';
@@ -372,13 +405,22 @@ function renderNav() {
       const errorEl = document.getElementById('adjust-stock-error');
       errorEl.style.display = 'none';
 
-      const newQty = parseInt(document.getElementById('as-quantity').value, 10);
+      const product = allProducts.find(p => p.id === adjustingProductId);
+      const enteredVal = parseInt(document.getElementById('as-quantity').value, 10);
+      const mode = document.getElementById('as-mode').value;
       const department = document.getElementById('as-department').value;
-      if (isNaN(newQty) || newQty < 0) {
-        errorEl.textContent = 'Please enter a valid stock quantity.';
+
+      if (!product || isNaN(enteredVal) || enteredVal < 0) {
+        errorEl.textContent = 'Please enter a valid quantity.';
         errorEl.style.display = 'block';
         return;
       }
+
+      // "Add" mode always adds on top of current stock — it never overwrites
+      // it, even if two people adjust stock around the same time, since we
+      // read the live current value right here rather than trusting a
+      // possibly-stale number typed into the field.
+      const newQty = mode === 'add' ? product.stock_quantity + enteredVal : enteredVal;
 
       const btn = document.getElementById('save-stock-btn');
       btn.disabled = true;
@@ -396,6 +438,14 @@ function renderNav() {
         errorEl.textContent = 'Error: ' + error.message;
         errorEl.style.display = 'block';
         return;
+      }
+
+      if (newQty <= (product.reorder_level ?? 2)) {
+        notifyOwner('low_stock', {
+          product_name: product.name,
+          stock_quantity: newQty,
+          reorder_level: product.reorder_level ?? 2
+        });
       }
 
       closeAdjustStockPanel();
@@ -484,12 +534,36 @@ function renderNav() {
         return;
       }
 
+      notifyOwner('stock_loss', {
+        product_name: product.name,
+        quantity,
+        cost_value: costValue,
+        reason
+      });
+
       closeLossPanel();
       await loadProducts();
     }
 
+    // ---------- Owner notifications (best-effort, never blocks the UI) ----------
+    async function notifyOwner(type, payload) {
+      try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        await fetch('https://ipbqeyeanlyvklrjcbxl.supabase.co/functions/v1/notify-owner', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token || ''}`
+          },
+          body: JSON.stringify({ type, payload })
+        });
+      } catch (err) {
+        console.warn('notifyOwner failed (non-blocking):', err);
+      }
+    }
+
     async function deleteProduct(productId, productName) {
-      if (!confirm(`Delete "${productName}" permanently? This cannot be undone.`)) return;
+      if (!(await confirmDialog(`Delete "${productName}" permanently? This cannot be undone.`))) return;
       const { error } = await supabaseClient.from('products').delete().eq('id', productId);
       if (error) { alert('Error: ' + error.message); return; }
       await loadProducts();
