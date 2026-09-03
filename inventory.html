@@ -88,66 +88,25 @@
   </div>
   <div id="edit-panel-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:40;" onclick="closeEditPanel()"></div>
 
-  <!-- Adjust Stock modal: add/remove units and confirm which department they belong to -->
-  <div id="adjust-stock-panel" class="card" style="display:none; position:fixed; top:8%; left:50%; transform:translateX(-50%); width:90%; max-width:420px; z-index:50;">
+  <!-- Restock modal -->
+  <div id="restock-panel" class="card" style="display:none; position:fixed; top:10%; left:50%; transform:translateX(-50%); width:90%; max-width:420px; z-index:50; max-height:85vh; overflow-y:auto;">
     <div style="display:flex; justify-content:space-between; align-items:center;">
-      <h3 style="margin:0;">Adjust Stock</h3>
-      <button class="secondary" onclick="closeAdjustStockPanel()">Close</button>
+      <h3 style="margin:0;">Restock: <span id="rs-name"></span></h3>
+      <button class="secondary" onclick="closeRestockPanel()">Close</button>
     </div>
-    <p id="as-product-name" style="font-weight:600; margin:12px 0 0;"></p>
-    <p id="as-current-stock" style="color:var(--muted); font-size:0.85rem; margin-top:2px;"></p>
-
-    <div class="field" style="margin-top:12px;">
-      <label>Department this stock belongs to</label>
-      <select id="as-department">
-        <option value="Household Items">Household Items</option>
-        <option value="Clothes & Shoes">Clothes &amp; Shoes</option>
-      </select>
+    <div class="field" style="margin-top:14px;">
+      <label>Current Stock</label>
+      <input id="rs-current" disabled>
     </div>
     <div class="field">
-      <label>What are you doing?</label>
-      <select id="as-mode" onchange="updateAdjustStockLabel()">
-        <option value="add">➕ Add new stock arriving (most common)</option>
-        <option value="set">✏️ Correct to an exact total (e.g. after a stock take)</option>
-      </select>
+      <label>Add Quantity</label>
+      <input id="rs-qty" type="number" min="1" placeholder="Enter units to add" autofocus>
     </div>
-    <div class="field">
-      <label id="as-quantity-label">How many units are being added?</label>
-      <input id="as-quantity" type="number" min="0" placeholder="e.g. 15">
-    </div>
-    <p id="as-preview" style="font-size:0.85rem; color:var(--muted); margin-top:-8px;"></p>
-    <button onclick="saveStockAdjustment()" id="save-stock-btn" style="width:100%;">Save</button>
-    <p class="error-text" id="adjust-stock-error" style="display:none;"></p>
+    <button onclick="restock()" id="restock-confirm-btn">Confirm Restock</button>
+    <p class="error-text" id="restock-error" style="display:none;"></p>
+    <p id="restock-success" style="display:none; color:#065f46; font-weight:600; margin-top:8px;"></p>
   </div>
-  <div id="adjust-stock-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:40;" onclick="closeAdjustStockPanel()"></div>
-
-  <!-- Record Loss modal: damaged / expired / stolen stock write-off -->
-  <div id="loss-panel" class="card" style="display:none; position:fixed; top:8%; left:50%; transform:translateX(-50%); width:90%; max-width:420px; z-index:50;">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-      <h3 style="margin:0;">Record Stock Loss</h3>
-      <button class="secondary" onclick="closeLossPanel()">Close</button>
-    </div>
-    <p id="loss-product-name" style="font-weight:600; margin:12px 0 0;"></p>
-    <p id="loss-current-stock" style="color:var(--muted); font-size:0.85rem; margin-top:2px;"></p>
-
-    <div class="field" style="margin-top:12px;">
-      <label>Quantity lost</label>
-      <input id="loss-quantity" type="number" min="1" placeholder="e.g. 2">
-    </div>
-    <div class="field">
-      <label>Reason</label>
-      <select id="loss-reason">
-        <option value="Damaged">Damaged</option>
-        <option value="Expired">Expired</option>
-        <option value="Stolen">Stolen</option>
-        <option value="Stock count discrepancy">Stock count discrepancy</option>
-        <option value="Other">Other</option>
-      </select>
-    </div>
-    <button class="danger" onclick="saveLoss()" id="save-loss-btn" style="width:100%;">Record Loss</button>
-    <p class="error-text" id="loss-error" style="display:none;"></p>
-  </div>
-  <div id="loss-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:40;" onclick="closeLossPanel()"></div>
+  <div id="restock-panel-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:40;" onclick="closeRestockPanel()"></div>
 
   <script>
 const CACHE_PREFIX = 'appliance_pos_cache_';
@@ -335,8 +294,7 @@ function renderNav() {
                   <td style="font-size:0.8rem; color:var(--muted);">${dateAdded}</td>
                   <td>
                     <button class="secondary" style="padding:6px 10px; font-size:0.8rem;" onclick='editProduct(${JSON.stringify(p.id)})'>Edit</button>
-                    <button class="secondary" style="padding:6px 10px; font-size:0.8rem;" onclick='adjustStock(${JSON.stringify(p.id)})'>Adjust Stock</button>
-                    <button class="secondary" style="padding:6px 10px; font-size:0.8rem; color:var(--red); border-color:var(--red);" onclick='openLossPanel(${JSON.stringify(p.id)})'>Record Loss</button>
+                    <button class="secondary" style="padding:6px 10px; font-size:0.8rem;" onclick='openRestock(${JSON.stringify(p.id)})'>Restock</button>
                     <button class="danger" style="padding:6px 10px; font-size:0.8rem;" onclick='deleteProduct(${JSON.stringify(p.id)}, ${JSON.stringify(p.name)})'>Delete</button>
                   </td>
                 </tr>`;
@@ -352,87 +310,59 @@ function renderNav() {
       ));
     });
 
-    // ---------- Adjust Stock (also confirms/reassigns department) ----------
-    let adjustingProductId = null;
+    let restockingProductId = null;
 
-    function adjustStock(productId) {
+    function openRestock(productId) {
       const product = allProducts.find(p => p.id === productId);
       if (!product) return;
-      adjustingProductId = productId;
+      restockingProductId = productId;
 
-      document.getElementById('as-product-name').textContent = product.name;
-      document.getElementById('as-current-stock').textContent = `Current stock: ${product.stock_quantity}`;
-      document.getElementById('as-department').value = product.department || 'Household Items';
-      document.getElementById('as-mode').value = 'add';
-      document.getElementById('as-quantity').value = '';
-      document.getElementById('adjust-stock-error').style.display = 'none';
-      updateAdjustStockLabel();
+      document.getElementById('rs-name').textContent = product.name;
+      document.getElementById('rs-current').value = `${product.stock_quantity} in stock`;
+      document.getElementById('rs-qty').value = '';
+      document.getElementById('restock-error').style.display = 'none';
+      document.getElementById('restock-success').style.display = 'none';
+      document.getElementById('restock-confirm-btn').disabled = false;
+      document.getElementById('restock-confirm-btn').textContent = 'Confirm Restock';
 
-      document.getElementById('adjust-stock-panel').style.display = 'block';
-      document.getElementById('adjust-stock-overlay').style.display = 'block';
+      document.getElementById('restock-panel').style.display = 'block';
+      document.getElementById('restock-panel-overlay').style.display = 'block';
     }
 
-    function updateAdjustStockLabel() {
-      const mode = document.getElementById('as-mode').value;
-      const label = document.getElementById('as-quantity-label');
-      label.textContent = mode === 'add' ? 'How many units are being added?' : 'What is the correct total stock count?';
-      updateAdjustStockPreview();
+    function closeRestockPanel() {
+      document.getElementById('restock-panel').style.display = 'none';
+      document.getElementById('restock-panel-overlay').style.display = 'none';
+      restockingProductId = null;
     }
 
-    function updateAdjustStockPreview() {
-      const product = allProducts.find(p => p.id === adjustingProductId);
-      if (!product) return;
-      const mode = document.getElementById('as-mode').value;
-      const val = parseInt(document.getElementById('as-quantity').value, 10);
-      const previewEl = document.getElementById('as-preview');
-      if (isNaN(val) || val < 0) { previewEl.textContent = ''; return; }
-      if (mode === 'add') {
-        previewEl.textContent = `New total: ${product.stock_quantity} + ${val} = ${product.stock_quantity + val}`;
-      } else {
-        previewEl.textContent = `Stock will be set to exactly ${val} (was ${product.stock_quantity}).`;
-      }
-    }
-
-    document.getElementById('as-quantity').addEventListener('input', updateAdjustStockPreview);
-
-    function closeAdjustStockPanel() {
-      document.getElementById('adjust-stock-panel').style.display = 'none';
-      document.getElementById('adjust-stock-overlay').style.display = 'none';
-      adjustingProductId = null;
-    }
-
-    async function saveStockAdjustment() {
-      const errorEl = document.getElementById('adjust-stock-error');
+    async function restock() {
+      const errorEl = document.getElementById('restock-error');
+      const successEl = document.getElementById('restock-success');
       errorEl.style.display = 'none';
+      successEl.style.display = 'none';
 
-      const product = allProducts.find(p => p.id === adjustingProductId);
-      const enteredVal = parseInt(document.getElementById('as-quantity').value, 10);
-      const mode = document.getElementById('as-mode').value;
-      const department = document.getElementById('as-department').value;
-
-      if (!product || isNaN(enteredVal) || enteredVal < 0) {
-        errorEl.textContent = 'Please enter a valid quantity.';
+      const addQty = parseInt(document.getElementById('rs-qty').value, 10);
+      if (isNaN(addQty) || addQty < 1) {
+        errorEl.textContent = 'Please enter a valid quantity to add.';
         errorEl.style.display = 'block';
         return;
       }
 
-      // "Add" mode always adds on top of current stock — it never overwrites
-      // it, even if two people adjust stock around the same time, since we
-      // read the live current value right here rather than trusting a
-      // possibly-stale number typed into the field.
-      const newQty = mode === 'add' ? product.stock_quantity + enteredVal : enteredVal;
+      const product = allProducts.find(p => p.id === restockingProductId);
+      if (!product) return;
 
-      const btn = document.getElementById('save-stock-btn');
+      const btn = document.getElementById('restock-confirm-btn');
       btn.disabled = true;
       btn.textContent = 'Saving...';
 
+      const newQty = product.stock_quantity + addQty;
       const { error } = await supabaseClient
         .from('products')
-        .update({ stock_quantity: newQty, department })
-        .eq('id', adjustingProductId);
+        .update({ stock_quantity: newQty })
+        .eq('id', restockingProductId);
 
       btn.disabled = false;
-      btn.textContent = 'Save';
+      btn.textContent = 'Confirm Restock';
 
       if (error) {
         errorEl.textContent = 'Error: ' + error.message;
@@ -440,130 +370,15 @@ function renderNav() {
         return;
       }
 
-      if (newQty <= (product.reorder_level ?? 2)) {
-        notifyOwner('low_stock', {
-          product_name: product.name,
-          stock_quantity: newQty,
-          reorder_level: product.reorder_level ?? 2
-        });
-      }
-
-      closeAdjustStockPanel();
       await loadProducts();
-    }
-
-    // ---------- Record Loss (damaged / expired / stolen stock) ----------
-    let lossProductId = null;
-
-    function openLossPanel(productId) {
-      const product = allProducts.find(p => p.id === productId);
-      if (!product) return;
-      lossProductId = productId;
-
-      document.getElementById('loss-product-name').textContent = product.name;
-      document.getElementById('loss-current-stock').textContent = `Current stock: ${product.stock_quantity}`;
-      document.getElementById('loss-quantity').value = '';
-      document.getElementById('loss-reason').value = 'Damaged';
-      document.getElementById('loss-error').style.display = 'none';
-
-      document.getElementById('loss-panel').style.display = 'block';
-      document.getElementById('loss-overlay').style.display = 'block';
-    }
-
-    function closeLossPanel() {
-      document.getElementById('loss-panel').style.display = 'none';
-      document.getElementById('loss-overlay').style.display = 'none';
-      lossProductId = null;
-    }
-
-    async function saveLoss() {
-      const errorEl = document.getElementById('loss-error');
-      errorEl.style.display = 'none';
-
-      const product = allProducts.find(p => p.id === lossProductId);
-      const quantity = parseInt(document.getElementById('loss-quantity').value, 10);
-      const reason = document.getElementById('loss-reason').value;
-
-      if (!product) return;
-      if (isNaN(quantity) || quantity <= 0) {
-        errorEl.textContent = 'Enter a valid quantity lost.';
-        errorEl.style.display = 'block';
-        return;
-      }
-      if (quantity > product.stock_quantity) {
-        errorEl.textContent = `Only ${product.stock_quantity} in stock — cannot record a loss of ${quantity}.`;
-        errorEl.style.display = 'block';
-        return;
-      }
-
-      const btn = document.getElementById('save-loss-btn');
-      btn.disabled = true;
-      btn.textContent = 'Recording...';
-
-      const costValue = Number(product.cost || 0) * quantity;
-
-      const { error: lossError } = await supabaseClient.from('stock_losses').insert({
-        product_id: product.id,
-        product_name: product.name,
-        department: product.department,
-        quantity,
-        cost_value: costValue,
-        reason,
-        recorded_by: currentStaff.id
-      });
-
-      if (lossError) {
-        errorEl.textContent = 'Error: ' + lossError.message;
-        errorEl.style.display = 'block';
-        btn.disabled = false;
-        btn.textContent = 'Record Loss';
-        return;
-      }
-
-      const { error: stockError } = await supabaseClient
-        .from('products')
-        .update({ stock_quantity: product.stock_quantity - quantity })
-        .eq('id', product.id);
-
-      btn.disabled = false;
-      btn.textContent = 'Record Loss';
-
-      if (stockError) {
-        errorEl.textContent = 'Loss recorded, but stock quantity failed to update: ' + stockError.message;
-        errorEl.style.display = 'block';
-        return;
-      }
-
-      notifyOwner('stock_loss', {
-        product_name: product.name,
-        quantity,
-        cost_value: costValue,
-        reason
-      });
-
-      closeLossPanel();
-      await loadProducts();
-    }
-
-    // ---------- Owner notifications (best-effort, never blocks the UI) ----------
-    async function notifyOwner(type, payload) {
-      try {
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        await fetch('https://ipbqeyeanlyvklrjcbxl.supabase.co/functions/v1/notify-owner', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token || ''}`
-          },
-          body: JSON.stringify({ type, payload })
-        });
-      } catch (err) {
-        console.warn('notifyOwner failed (non-blocking):', err);
-      }
+      document.getElementById('rs-current').value = `${newQty} in stock`;
+      document.getElementById('rs-qty').value = '';
+      successEl.textContent = `Restocked — ${product.name} now has ${newQty} in stock`;
+      successEl.style.display = 'block';
     }
 
     async function deleteProduct(productId, productName) {
-      if (!(await confirmDialog(`Delete "${productName}" permanently? This cannot be undone.`))) return;
+      if (!confirm(`Delete "${productName}" permanently? This cannot be undone.`)) return;
       const { error } = await supabaseClient.from('products').delete().eq('id', productId);
       if (error) { alert('Error: ' + error.message); return; }
       await loadProducts();
