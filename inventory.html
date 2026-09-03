@@ -104,7 +104,6 @@
     </div>
     <button onclick="restock()" id="restock-confirm-btn">Confirm Restock</button>
     <p class="error-text" id="restock-error" style="display:none;"></p>
-    <p id="restock-success" style="display:none; color:#065f46; font-weight:600; margin-top:8px;"></p>
   </div>
   <div id="restock-panel-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:40;" onclick="closeRestockPanel()"></div>
 
@@ -337,9 +336,7 @@ function renderNav() {
 
     async function restock() {
       const errorEl = document.getElementById('restock-error');
-      const successEl = document.getElementById('restock-success');
       errorEl.style.display = 'none';
-      successEl.style.display = 'none';
 
       const addQty = parseInt(document.getElementById('rs-qty').value, 10);
       if (isNaN(addQty) || addQty < 1) {
@@ -371,10 +368,7 @@ function renderNav() {
       }
 
       await loadProducts();
-      document.getElementById('rs-current').value = `${newQty} in stock`;
-      document.getElementById('rs-qty').value = '';
-      successEl.textContent = `Restocked — ${product.name} now has ${newQty} in stock`;
-      successEl.style.display = 'block';
+      closeRestockPanel();
     }
 
     async function deleteProduct(productId, productName) {
