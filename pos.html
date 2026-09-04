@@ -28,6 +28,7 @@
       <span class="role-tag" id="staff-name">...</span>
 
       <button
+        type="button"
         class="secondary"
         onclick="logout()"
         style="color:#fff; border-color:#3a5169;"
@@ -168,6 +169,7 @@
           </h3>
 
           <button
+            type="button"
             class="secondary"
             style="padding:6px 10px; font-size:0.8rem;"
             onclick="holdSale()"
@@ -330,6 +332,7 @@
 
         <!-- CHECKOUT -->
         <button
+          type="button"
           id="checkout-btn"
           style="width:100%;"
           onclick="checkout()"
@@ -402,6 +405,7 @@
     >
 
       <button
+        type="button"
         style="flex:1;"
         onclick="printReceipt()"
       >
@@ -409,6 +413,7 @@
       </button>
 
       <button
+        type="button"
         class="gold"
         style="flex:1;"
         onclick="shareReceiptWhatsapp()"
@@ -420,6 +425,7 @@
 
 
     <button
+      type="button"
       class="secondary"
       style="width:100%; margin-top:8px;"
       onclick="closeReceipt()"
@@ -466,7 +472,9 @@
         .querySelectorAll('.dept-tab')
         .forEach(btn => btn.classList.remove('active'));
 
-      btnEl.classList.add('active');
+      if (btnEl) {
+        btnEl.classList.add('active');
+      }
 
       applyProductFilters();
     }
@@ -474,26 +482,41 @@
 
     function applyProductFilters() {
 
-      const q = document
-        .getElementById('product-search')
-        .value
-        .toLowerCase()
-        .trim();
+      const searchInput =
+        document.getElementById('product-search');
 
-      const filtered = allProducts.filter(product => {
+      const q =
+        (searchInput?.value || '')
+          .toLowerCase()
+          .trim();
 
-        const matchesDept =
-          !deptFilter ||
-          product.department === deptFilter;
 
-        const matchesSearch =
-          product.name.toLowerCase().includes(q) ||
-          (product.category || '')
-            .toLowerCase()
-            .includes(q);
+      const filtered =
+        allProducts.filter(product => {
 
-        return matchesDept && matchesSearch;
-      });
+          const matchesDept =
+            !deptFilter ||
+            product.department === deptFilter;
+
+
+          const productName =
+            String(product.name || '')
+              .toLowerCase();
+
+
+          const category =
+            String(product.category || '')
+              .toLowerCase();
+
+
+          const matchesSearch =
+            productName.includes(q) ||
+            category.includes(q);
+
+
+          return matchesDept && matchesSearch;
+        });
+
 
       renderProductList(filtered);
     }
@@ -508,15 +531,23 @@
       const banner =
         document.getElementById('low-stock-banner');
 
-      const lowItems = allProducts.filter(product => {
 
-        const stock = Number(product.stock_quantity ?? 0);
+      if (!banner) return;
 
-        const reorderLevel =
-          Number(product.reorder_level ?? 2);
 
-        return stock <= reorderLevel;
-      });
+      const lowItems =
+        allProducts.filter(product => {
+
+          const stock =
+            Number(product.stock_quantity ?? 0);
+
+
+          const reorderLevel =
+            Number(product.reorder_level ?? 2);
+
+
+          return stock <= reorderLevel;
+        });
 
 
       if (!lowItems.length) {
@@ -528,10 +559,13 @@
       }
 
 
-      const names = lowItems
-        .slice(0, 4)
-        .map(product => escapeHtml(product.name))
-        .join(', ');
+      const names =
+        lowItems
+          .slice(0, 4)
+          .map(product =>
+            escapeHtml(product.name)
+          )
+          .join(', ');
 
 
       const extra =
@@ -554,42 +588,54 @@
 
     (async () => {
 
-      currentStaff =
-        await requireAuth([
-          'admin',
-          'manager',
-          'cashier'
-        ]);
+      try {
 
-      if (!currentStaff) return;
-
-
-      document.getElementById('staff-name').textContent =
-        `${currentStaff.full_name} (${currentStaff.role})`;
+        currentStaff =
+          await requireAuth([
+            'admin',
+            'manager',
+            'cashier'
+          ]);
 
 
-      renderNav(currentStaff.role);
+        if (!currentStaff) return;
 
 
-      // Department-locked staff
-      if (
-        currentStaff.role !== 'admin' &&
-        currentStaff.department
-      ) {
+        document.getElementById('staff-name').textContent =
+          `${currentStaff.full_name} (${currentStaff.role})`;
 
-        document.getElementById('dept-tabs').style.display =
-          'none';
 
-        deptFilter =
-          currentStaff.department;
+        renderNav(currentStaff.role);
+
+
+        // Department-locked staff
+        if (
+          currentStaff.role !== 'admin' &&
+          currentStaff.department
+        ) {
+
+          document.getElementById('dept-tabs').style.display =
+            'none';
+
+          deptFilter =
+            currentStaff.department;
+        }
+
+
+        await loadProducts();
+
+        renderHeldSales();
+
+        renderCart();
+
+      } catch (error) {
+
+        console.error(
+          'POS initialization failed:',
+          error
+        );
+
       }
-
-
-      await loadProducts();
-
-      renderHeldSales();
-
-      renderCart();
 
     })();
 
@@ -634,10 +680,10 @@
       document.getElementById('nav-tabs').innerHTML =
         tabs.map(tab => `
           <a
-            href="${tab.href}"
+            href="${escapeHtml(tab.href)}"
             class="${tab.href === 'pos.html' ? 'active' : ''}"
           >
-            ${tab.label}
+            ${escapeHtml(tab.label)}
           </a>
         `).join('');
     }
@@ -654,11 +700,19 @@
         const cached =
           cacheGet('products_list');
 
+
         if (cached) {
 
-          allProducts = cached.data;
+          allProducts =
+            Array.isArray(cached.data)
+              ? cached.data
+              : [];
 
-          showOfflineBanner(cached.cachedAt);
+
+          showOfflineBanner(
+            cached.cachedAt
+          );
+
 
           applyProductFilters();
 
@@ -672,16 +726,20 @@
       const {
         data,
         error
-      } = await supabaseClient
-        .from('products')
-        .select('*')
-        .eq('is_active', true)
-        .order('name');
+      } =
+        await supabaseClient
+          .from('products')
+          .select('*')
+          .eq('is_active', true)
+          .order('name');
 
 
       if (error) {
 
-        console.error(error);
+        console.error(
+          'Product loading failed:',
+          error
+        );
 
 
         const cached =
@@ -690,9 +748,16 @@
 
         if (cached) {
 
-          allProducts = cached.data;
+          allProducts =
+            Array.isArray(cached.data)
+              ? cached.data
+              : [];
 
-          showOfflineBanner(cached.cachedAt);
+
+          showOfflineBanner(
+            cached.cachedAt
+          );
+
 
           applyProductFilters();
 
@@ -705,7 +770,12 @@
 
       hideOfflineBanner();
 
-      allProducts = data || [];
+
+      allProducts =
+        Array.isArray(data)
+          ? data
+          : [];
+
 
       cacheSet(
         'products_list',
@@ -729,6 +799,9 @@
         document.getElementById('product-list');
 
 
+      if (!el) return;
+
+
       if (!products.length) {
 
         el.innerHTML =
@@ -738,77 +811,87 @@
       }
 
 
-      el.innerHTML = products.map(product => {
+      el.innerHTML =
+        products.map(product => {
 
-        const stock =
-          Number(product.stock_quantity ?? 0);
-
-        const reorderLevel =
-          Number(product.reorder_level ?? 2);
-
-        const isLowStock =
-          stock > 0 &&
-          stock <= reorderLevel;
-
-        const isOutOfStock =
-          stock <= 0;
+          const stock =
+            Number(product.stock_quantity ?? 0);
 
 
-        return `
-          <div
-            class="card"
-            style="
-              margin-bottom:8px;
-              padding:10px 14px;
-              display:flex;
-              justify-content:space-between;
-              align-items:center;
-            "
-          >
+          const reorderLevel =
+            Number(product.reorder_level ?? 2);
 
-            <div>
 
-              <strong>
-                ${escapeHtml(product.name)}
-              </strong>
+          const isLowStock =
+            stock > 0 &&
+            stock <= reorderLevel;
 
-              <div
-                style="
-                  font-size:0.8rem;
-                  color:var(--muted);
-                "
-              >
-                ${escapeHtml(product.category || '')}
-                · Ksh ${Number(product.price).toLocaleString()}
-                · ${stock} in stock
 
-                ${
-                  isLowStock
-                    ? ' · ⚠️ Low stock'
-                    : ''
-                }
+          const isOutOfStock =
+            stock <= 0;
 
-                ${
-                  isOutOfStock
-                    ? ' · ❌ Out of stock'
-                    : ''
-                }
+
+          const productId =
+            String(product.id);
+
+
+          return `
+            <div
+              class="card"
+              style="
+                margin-bottom:8px;
+                padding:10px 14px;
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+              "
+            >
+
+              <div>
+
+                <strong>
+                  ${escapeHtml(product.name)}
+                </strong>
+
+                <div
+                  style="
+                    font-size:0.8rem;
+                    color:var(--muted);
+                  "
+                >
+                  ${escapeHtml(product.category || '')}
+                  · Ksh ${Number(product.price || 0).toLocaleString()}
+                  · ${stock} in stock
+
+                  ${
+                    isLowStock
+                      ? ' · ⚠️ Low stock'
+                      : ''
+                  }
+
+                  ${
+                    isOutOfStock
+                      ? ' · ❌ Out of stock'
+                      : ''
+                  }
+                </div>
+
               </div>
 
+
+              <button
+                type="button"
+                ${isOutOfStock ? 'disabled' : ''}
+                data-product-id="${escapeHtml(productId)}"
+                onclick="addToCart(this.dataset.productId)"
+              >
+                Add
+              </button>
+
             </div>
+          `;
 
-
-            <button
-              ${isOutOfStock ? 'disabled' : ''}
-              onclick="addToCart(${JSON.stringify(product.id)})"
-            >
-              Add
-            </button>
-
-          </div>
-        `;
-
-      }).join('');
+        }).join('');
     }
 
 
@@ -830,58 +913,113 @@
 
     function addToCart(productId) {
 
+      console.log(
+        'Add clicked:',
+        productId
+      );
+
+
+      // Find product using string comparison.
+      // This safely handles UUIDs and string IDs.
       const product =
         allProducts.find(
-          p => p.id === productId
+          p =>
+            String(p.id) ===
+            String(productId)
         );
 
 
-      if (!product) return;
+      if (!product) {
+
+        console.error(
+          'Product not found:',
+          productId
+        );
 
 
+        alert(
+          'Unable to add this product. Please refresh the POS.'
+        );
+
+
+        return;
+      }
+
+
+      // Current stock
+      const stock =
+        Number(
+          product.stock_quantity ?? 0
+        );
+
+
+      // Prevent adding products with no stock
+      if (stock <= 0) {
+
+        alert(
+          `❌ ${product.name} is out of stock.`
+        );
+
+
+        return;
+      }
+
+
+      // Check whether product already exists in cart
       const existing =
         cart.find(
-          item => item.product.id === productId
+          item =>
+            String(item.product.id) ===
+            String(productId)
         );
 
 
       const currentCartQty =
         existing
-          ? existing.quantity
+          ? Number(existing.quantity)
           : 0;
 
 
-      const stock =
-        Number(product.stock_quantity ?? 0);
-
-
+      // Never allow cart quantity to exceed stock
       if (
-        currentCartQty + 1 >
-        stock
+        currentCartQty >= stock
       ) {
 
         alert(
           `Not enough stock available. Only ${stock} item(s) left.`
         );
 
+
         return;
       }
 
 
+      // Increase quantity if already in cart
       if (existing) {
 
         existing.quantity += 1;
 
-      } else {
+      }
+
+      // Otherwise add product to cart
+      else {
 
         cart.push({
-          product,
+          product: product,
           quantity: 1
         });
+
       }
 
 
+      // Update cart display
       renderCart();
+
+
+      console.log(
+        'Cart updated:',
+        cart
+      );
     }
 
 
@@ -891,7 +1029,9 @@
 
     function changeQuantity(index, delta) {
 
-      const item = cart[index];
+      const item =
+        cart[index];
+
 
       if (!item) return;
 
@@ -922,11 +1062,14 @@
           `Not enough stock available. Only ${stock} item(s) left.`
         );
 
+
         return;
       }
 
 
-      item.quantity = newQty;
+      item.quantity =
+        newQty;
+
 
       renderCart();
     }
@@ -941,7 +1084,7 @@
       return cart.reduce(
         (sum, item) =>
           sum +
-          Number(item.product.price) *
+          Number(item.product.price || 0) *
           item.quantity,
         0
       );
@@ -950,11 +1093,15 @@
 
     function getDiscount() {
 
+      const input =
+        document.getElementById(
+          'discount-amount'
+        );
+
+
       const val =
         parseFloat(
-          document.getElementById(
-            'discount-amount'
-          ).value
+          input.value
         );
 
 
@@ -966,11 +1113,15 @@
 
     function getMarkup() {
 
+      const input =
+        document.getElementById(
+          'markup-amount'
+        );
+
+
       const val =
         parseFloat(
-          document.getElementById(
-            'markup-amount'
-          ).value
+          input.value
         );
 
 
@@ -1030,7 +1181,7 @@
                   "
                 >
                   Ksh ${Number(
-                    item.product.price
+                    item.product.price || 0
                   ).toLocaleString()} each
                 </div>
 
@@ -1046,6 +1197,7 @@
               >
 
                 <button
+                  type="button"
                   class="secondary"
                   style="padding:2px 8px;"
                   onclick="changeQuantity(${i}, -1)"
@@ -1060,6 +1212,7 @@
 
 
                 <button
+                  type="button"
                   class="secondary"
                   style="padding:2px 8px;"
                   onclick="changeQuantity(${i}, 1)"
@@ -1088,14 +1241,17 @@
       const subtotal =
         getSubtotal();
 
+
       const discount =
         Math.min(
           getDiscount(),
           subtotal
         );
 
+
       const markup =
         getMarkup();
+
 
       const total =
         Math.max(
@@ -1168,6 +1324,7 @@
           error
         );
 
+
         return [];
       }
     }
@@ -1189,6 +1346,7 @@
         alert(
           'Cart is empty — nothing to hold.'
         );
+
 
         return;
       }
@@ -1216,14 +1374,20 @@
 
         label,
 
-        cart: cart.map(item => ({
-          productId: item.product.id,
-          quantity: item.quantity
-        })),
+        cart:
+          cart.map(item => ({
+            productId:
+              item.product.id,
 
-        discount: getDiscount(),
+            quantity:
+              item.quantity
+          })),
 
-        markup: getMarkup(),
+        discount:
+          getDiscount(),
+
+        markup:
+          getMarkup(),
 
         customerName:
           document.getElementById(
@@ -1241,7 +1405,9 @@
       });
 
 
-      saveHeldSales(held);
+      saveHeldSales(
+        held
+      );
 
 
       cart = [];
@@ -1334,6 +1500,7 @@
             >
 
               <button
+                type="button"
                 class="secondary"
                 style="
                   padding:4px 8px;
@@ -1346,6 +1513,7 @@
 
 
               <button
+                type="button"
                 class="danger"
                 style="
                   padding:4px 8px;
@@ -1395,7 +1563,9 @@
 
             const product =
               allProducts.find(
-                p => p.id === ci.productId
+                p =>
+                  String(p.id) ===
+                  String(ci.productId)
               );
 
 
@@ -1481,7 +1651,8 @@
         );
 
 
-      errorEl.style.display = 'none';
+      errorEl.style.display =
+        'none';
 
 
       if (!cart.length) {
@@ -1502,7 +1673,9 @@
         );
 
 
-      btn.disabled = true;
+      btn.disabled =
+        true;
+
 
       btn.textContent =
         'Processing...';
@@ -1669,8 +1842,8 @@
           const product =
             allProducts.find(
               p =>
-                p.id ===
-                item.product_id
+                String(p.id) ===
+                String(item.product_id)
             );
 
 
@@ -1697,7 +1870,8 @@
             await supabaseClient
               .from('products')
               .update({
-                stock_quantity: newQty
+                stock_quantity:
+                  newQty
               })
               .eq(
                 'id',
@@ -1706,10 +1880,12 @@
 
 
           if (stockError) {
+
             console.error(
               'Stock update failed:',
               stockError
             );
+
           }
         }
 
@@ -1817,7 +1993,9 @@
       ).value = '';
 
 
-      btn.disabled = false;
+      btn.disabled =
+        false;
+
 
       btn.textContent =
         'Complete Sale';
@@ -1908,6 +2086,7 @@
           "
         >
           <span>Subtotal</span>
+
           <span>
             Ksh ${data.subtotal.toLocaleString()}
           </span>
@@ -1924,6 +2103,7 @@
                 "
               >
                 <span>Discount</span>
+
                 <span>
                   − Ksh ${data.discount.toLocaleString()}
                 </span>
@@ -1943,6 +2123,7 @@
                 "
               >
                 <span>Markup</span>
+
                 <span>
                   + Ksh ${data.markup.toLocaleString()}
                 </span>
@@ -2081,6 +2262,7 @@
         alert(
           'Please allow pop-ups to print the receipt.'
         );
+
 
         return;
       }
