@@ -22,7 +22,7 @@
   <div class="topbar">
     <h1>🛒 Point of Sale</h1>
 
-    <div style="display:flex; align-items:center; gap:12px;">
+    <div style="display:flex;align-items:center;gap:12px;">
       <span id="sync-badge"></span>
 
       <span class="role-tag" id="staff-name">...</span>
@@ -31,7 +31,7 @@
         type="button"
         class="secondary"
         onclick="logout()"
-        style="color:#fff; border-color:#3a5169;"
+        style="color:#fff;border-color:#3a5169;"
       >
         Logout
       </button>
@@ -40,13 +40,16 @@
 
 
   <!-- ============================================================
-       MAIN CONTENT
+       MAIN
   ============================================================ -->
   <div class="container">
 
     <div class="nav-tabs" id="nav-tabs"></div>
 
-    <div class="grid" style="grid-template-columns:1.3fr 1fr;">
+    <div
+      class="grid"
+      style="grid-template-columns:1.3fr 1fr;"
+    >
 
       <!-- ========================================================
            PRODUCTS
@@ -56,6 +59,7 @@
         <!-- LOW STOCK WARNING -->
         <div
           id="low-stock-banner"
+          role="alert"
           style="
             display:none;
             background:#fef3c7;
@@ -71,9 +75,14 @@
 
         <!-- DEPARTMENT TABS -->
         <div
-          style="display:flex; gap:8px; margin-bottom:12px;"
           id="dept-tabs"
+          style="
+            display:flex;
+            gap:8px;
+            margin-bottom:12px;
+          "
         >
+
           <button
             type="button"
             class="dept-tab active"
@@ -103,17 +112,21 @@
           >
             Clothes & Shoes
           </button>
+
         </div>
 
 
         <!-- SEARCH -->
         <div class="field">
-          <label>Search product</label>
+          <label for="product-search">
+            Search product
+          </label>
 
           <input
             type="text"
             id="product-search"
             placeholder="Type name or type..."
+            autocomplete="off"
           >
         </div>
 
@@ -121,7 +134,7 @@
         <!-- PRODUCT LIST -->
         <div
           id="product-list"
-          style="max-height:340px; overflow-y:auto;"
+          style="max-height:340px;overflow-y:auto;"
         ></div>
 
 
@@ -133,27 +146,23 @@
             padding-top:14px;
           "
         >
-          <div
-            style="
-              display:flex;
-              justify-content:space-between;
-              align-items:center;
-            "
-          >
-            <h3 style="margin:0;">Held Sales</h3>
-          </div>
+
+          <h3 style="margin:0;">
+            Held Sales
+          </h3>
 
           <div
             id="held-sales-list"
             style="margin-top:8px;"
           ></div>
+
         </div>
 
       </div>
 
 
       <!-- ========================================================
-           CURRENT SALE / CART
+           CURRENT SALE
       ======================================================== -->
       <div class="card">
 
@@ -164,18 +173,20 @@
             align-items:center;
           "
         >
-          <h3 style="margin-top:0; margin-bottom:0;">
+
+          <h3 style="margin:0;">
             Current Sale
           </h3>
 
           <button
             type="button"
             class="secondary"
-            style="padding:6px 10px; font-size:0.8rem;"
+            style="padding:6px 10px;font-size:0.8rem;"
             onclick="holdSale()"
           >
             Hold Sale
           </button>
+
         </div>
 
 
@@ -190,27 +201,38 @@
         >
 
           <div class="field">
-            <label>Discount (Ksh)</label>
+
+            <label for="discount-amount">
+              Discount (Ksh)
+            </label>
 
             <input
               type="number"
               id="discount-amount"
               min="0"
+              step="0.01"
               placeholder="0"
               value="0"
             >
+
           </div>
 
+
           <div class="field">
-            <label>Markup (Ksh)</label>
+
+            <label for="markup-amount">
+              Markup (Ksh)
+            </label>
 
             <input
               type="number"
               id="markup-amount"
               min="0"
+              step="0.01"
               placeholder="0"
               value="0"
             >
+
           </div>
 
         </div>
@@ -297,36 +319,48 @@
           class="field"
           style="margin-top:14px;"
         >
-          <label>Customer name (optional)</label>
+
+          <label for="customer-name">
+            Customer name (optional)
+          </label>
 
           <input
             type="text"
             id="customer-name"
             placeholder="Walk-in customer"
           >
+
         </div>
 
 
         <div class="field">
-          <label>Customer phone (optional)</label>
+
+          <label for="customer-phone">
+            Customer phone (optional)
+          </label>
 
           <input
             type="tel"
             id="customer-phone"
             placeholder="07XXXXXXXX"
           >
+
         </div>
 
 
         <!-- PAYMENT -->
         <div class="field">
-          <label>Payment method</label>
+
+          <label for="payment-method">
+            Payment method
+          </label>
 
           <select id="payment-method">
             <option value="mpesa">M-Pesa</option>
             <option value="cash">Cash</option>
             <option value="card">Card</option>
           </select>
+
         </div>
 
 
@@ -354,7 +388,7 @@
 
 
   <!-- ============================================================
-       RECEIPT MODAL
+       RECEIPT
   ============================================================ -->
 
   <div
@@ -366,6 +400,7 @@
       background:rgba(0,0,0,0.5);
       z-index:60;
     "
+    onclick="closeReceipt()"
   ></div>
 
 
@@ -389,7 +424,7 @@
     <div
       id="receipt-content"
       style="
-        font-family:'Courier New', monospace;
+        font-family:'Courier New',monospace;
         font-size:0.85rem;
         line-height:1.5;
       "
@@ -427,7 +462,7 @@
     <button
       type="button"
       class="secondary"
-      style="width:100%; margin-top:8px;"
+      style="width:100%;margin-top:8px;"
       onclick="closeReceipt()"
     >
       Close
@@ -437,7 +472,7 @@
 
 
   <!-- ============================================================
-       JAVASCRIPT FILES
+       JAVASCRIPT
   ============================================================ -->
 
   <script src="js/offline-cache.js"></script>
@@ -447,9 +482,9 @@
 
   <script>
 
-    // ============================================================
-    // GLOBAL STATE
-    // ============================================================
+    /* ============================================================
+       GLOBAL STATE
+    ============================================================ */
 
     let cart = [];
     let allProducts = [];
@@ -457,20 +492,37 @@
     let lastReceiptData = null;
     let deptFilter = '';
 
-    const HELD_SALES_KEY = 'appliance_pos_held_sales';
+    const HELD_SALES_KEY =
+      'appliance_pos_held_sales';
 
 
-    // ============================================================
-    // DEPARTMENT FILTER
-    // ============================================================
+    /* ============================================================
+       SAFE NUMBER
+    ============================================================ */
+
+    function safeNumber(value, fallback = 0) {
+
+      const number = Number(value);
+
+      return Number.isFinite(number)
+        ? number
+        : fallback;
+    }
+
+
+    /* ============================================================
+       DEPARTMENT FILTER
+    ============================================================ */
 
     function setDeptFilter(dept, btnEl) {
 
-      deptFilter = dept;
+      deptFilter = dept || '';
 
       document
         .querySelectorAll('.dept-tab')
-        .forEach(btn => btn.classList.remove('active'));
+        .forEach(btn => {
+          btn.classList.remove('active');
+        });
 
       if (btnEl) {
         btnEl.classList.add('active');
@@ -486,7 +538,7 @@
         document.getElementById('product-search');
 
       const q =
-        (searchInput?.value || '')
+        String(searchInput?.value || '')
           .toLowerCase()
           .trim();
 
@@ -494,9 +546,14 @@
       const filtered =
         allProducts.filter(product => {
 
+          const productDepartment =
+            String(product.department || '').trim();
+
+
           const matchesDept =
             !deptFilter ||
-            product.department === deptFilter;
+            productDepartment ===
+              String(deptFilter).trim();
 
 
           const productName =
@@ -510,6 +567,7 @@
 
 
           const matchesSearch =
+            !q ||
             productName.includes(q) ||
             category.includes(q);
 
@@ -522,14 +580,16 @@
     }
 
 
-    // ============================================================
-    // LOW STOCK WARNING
-    // ============================================================
+    /* ============================================================
+       LOW STOCK
+    ============================================================ */
 
     function updateLowStockBanner() {
 
       const banner =
-        document.getElementById('low-stock-banner');
+        document.getElementById(
+          'low-stock-banner'
+        );
 
 
       if (!banner) return;
@@ -539,11 +599,17 @@
         allProducts.filter(product => {
 
           const stock =
-            Number(product.stock_quantity ?? 0);
+            safeNumber(
+              product.stock_quantity,
+              0
+            );
 
 
           const reorderLevel =
-            Number(product.reorder_level ?? 2);
+            safeNumber(
+              product.reorder_level,
+              5
+            );
 
 
           return stock <= reorderLevel;
@@ -563,7 +629,9 @@
         lowItems
           .slice(0, 4)
           .map(product =>
-            escapeHtml(product.name)
+            escapeHtml(
+              product.name || 'Unnamed product'
+            )
           )
           .join(', ');
 
@@ -575,18 +643,18 @@
 
 
       banner.innerHTML =
-        `⚠️ Low stock: ${names}${extra}`;
+        `⚠️ Low stock: ${names}${extra}. Please inform the owner.`;
 
 
       banner.style.display = 'block';
     }
 
 
-    // ============================================================
-    // AUTH / INITIAL LOAD
-    // ============================================================
+    /* ============================================================
+       AUTH / INITIALIZATION
+    ============================================================ */
 
-    (async () => {
+    (async function initPOS() {
 
       try {
 
@@ -601,24 +669,45 @@
         if (!currentStaff) return;
 
 
-        document.getElementById('staff-name').textContent =
-          `${currentStaff.full_name} (${currentStaff.role})`;
+        const staffName =
+          document.getElementById(
+            'staff-name'
+          );
+
+
+        if (staffName) {
+
+          staffName.textContent =
+            `${currentStaff.full_name || 'Staff'} (${currentStaff.role})`;
+        }
 
 
         renderNav(currentStaff.role);
 
 
-        // Department-locked staff
+        /*
+         * Department-locked staff.
+         */
         if (
           currentStaff.role !== 'admin' &&
           currentStaff.department
         ) {
 
-          document.getElementById('dept-tabs').style.display =
-            'none';
+          const deptTabs =
+            document.getElementById(
+              'dept-tabs'
+            );
+
+
+          if (deptTabs) {
+            deptTabs.style.display = 'none';
+          }
+
 
           deptFilter =
-            currentStaff.department;
+            String(
+              currentStaff.department
+            ).trim();
         }
 
 
@@ -640,9 +729,9 @@
     })();
 
 
-    // ============================================================
-    // NAVIGATION
-    // ============================================================
+    /* ============================================================
+       NAVIGATION
+    ============================================================ */
 
     function renderNav(role) {
 
@@ -677,11 +766,24 @@
       }
 
 
-      document.getElementById('nav-tabs').innerHTML =
+      const nav =
+        document.getElementById(
+          'nav-tabs'
+        );
+
+
+      if (!nav) return;
+
+
+      nav.innerHTML =
         tabs.map(tab => `
           <a
             href="${escapeHtml(tab.href)}"
-            class="${tab.href === 'pos.html' ? 'active' : ''}"
+            class="${
+              tab.href === 'pos.html'
+                ? 'active'
+                : ''
+            }"
           >
             ${escapeHtml(tab.label)}
           </a>
@@ -689,12 +791,15 @@
     }
 
 
-    // ============================================================
-    // LOAD PRODUCTS
-    // ============================================================
+    /* ============================================================
+       LOAD PRODUCTS
+    ============================================================ */
 
     async function loadProducts() {
 
+      /*
+       * Offline mode.
+       */
       if (!navigator.onLine) {
 
         const cached =
@@ -723,18 +828,44 @@
       }
 
 
-      const {
-        data,
-        error
-      } =
-        await supabaseClient
-          .from('products')
-          .select('*')
-          .eq('is_active', true)
-          .order('name');
+      try {
+
+        const {
+          data,
+          error
+        } =
+          await supabaseClient
+            .from('products')
+            .select('*')
+            .eq('is_active', true)
+            .order('name');
 
 
-      if (error) {
+        if (error) {
+          throw error;
+        }
+
+
+        hideOfflineBanner();
+
+
+        allProducts =
+          Array.isArray(data)
+            ? data
+            : [];
+
+
+        cacheSet(
+          'products_list',
+          allProducts
+        );
+
+
+        applyProductFilters();
+
+        updateLowStockBanner();
+
+      } catch (error) {
 
         console.error(
           'Product loading failed:',
@@ -762,41 +893,22 @@
           applyProductFilters();
 
           updateLowStockBanner();
+
         }
-
-        return;
       }
-
-
-      hideOfflineBanner();
-
-
-      allProducts =
-        Array.isArray(data)
-          ? data
-          : [];
-
-
-      cacheSet(
-        'products_list',
-        allProducts
-      );
-
-
-      applyProductFilters();
-
-      updateLowStockBanner();
     }
 
 
-    // ============================================================
-    // PRODUCT LIST
-    // ============================================================
+    /* ============================================================
+       PRODUCT LIST
+    ============================================================ */
 
     function renderProductList(products) {
 
       const el =
-        document.getElementById('product-list');
+        document.getElementById(
+          'product-list'
+        );
 
 
       if (!el) return;
@@ -815,16 +927,22 @@
         products.map(product => {
 
           const stock =
-            Number(product.stock_quantity ?? 0);
+            safeNumber(
+              product.stock_quantity,
+              0
+            );
 
 
           const reorderLevel =
-            Number(product.reorder_level ?? 2);
+            safeNumber(
+              product.reorder_level,
+              5
+            );
 
 
           const isLowStock =
-            stock > 0 &&
-            stock <= reorderLevel;
+            stock <= reorderLevel &&
+            stock > 0;
 
 
           const isOutOfStock =
@@ -833,6 +951,13 @@
 
           const productId =
             String(product.id);
+
+
+          const price =
+            safeNumber(
+              product.price,
+              0
+            );
 
 
           return `
@@ -844,13 +969,16 @@
                 display:flex;
                 justify-content:space-between;
                 align-items:center;
+                gap:10px;
               "
             >
 
-              <div>
+              <div style="min-width:0;">
 
                 <strong>
-                  ${escapeHtml(product.name)}
+                  ${escapeHtml(
+                    product.name || 'Unnamed product'
+                  )}
                 </strong>
 
                 <div
@@ -859,8 +987,12 @@
                     color:var(--muted);
                   "
                 >
-                  ${escapeHtml(product.category || '')}
-                  · Ksh ${Number(product.price || 0).toLocaleString()}
+                  ${escapeHtml(
+                    product.category || ''
+                  )}
+
+                  · Ksh ${price.toLocaleString()}
+
                   · ${stock} in stock
 
                   ${
@@ -895,9 +1027,9 @@
     }
 
 
-    // ============================================================
-    // PRODUCT SEARCH
-    // ============================================================
+    /* ============================================================
+       SEARCH
+    ============================================================ */
 
     document
       .getElementById('product-search')
@@ -907,9 +1039,9 @@
       );
 
 
-    // ============================================================
-    // ADD TO CART
-    // ============================================================
+    /* ============================================================
+       ADD TO CART
+    ============================================================ */
 
     function addToCart(productId) {
 
@@ -919,8 +1051,6 @@
       );
 
 
-      // Find product using string comparison.
-      // This safely handles UUIDs and string IDs.
       const product =
         allProducts.find(
           p =>
@@ -946,14 +1076,13 @@
       }
 
 
-      // Current stock
       const stock =
-        Number(
-          product.stock_quantity ?? 0
+        safeNumber(
+          product.stock_quantity,
+          0
         );
 
 
-      // Prevent adding products with no stock
       if (stock <= 0) {
 
         alert(
@@ -965,7 +1094,6 @@
       }
 
 
-      // Check whether product already exists in cart
       const existing =
         cart.find(
           item =>
@@ -976,14 +1104,11 @@
 
       const currentCartQty =
         existing
-          ? Number(existing.quantity)
+          ? safeNumber(existing.quantity)
           : 0;
 
 
-      // Never allow cart quantity to exceed stock
-      if (
-        currentCartQty >= stock
-      ) {
+      if (currentCartQty >= stock) {
 
         alert(
           `Not enough stock available. Only ${stock} item(s) left.`
@@ -994,38 +1119,27 @@
       }
 
 
-      // Increase quantity if already in cart
       if (existing) {
 
         existing.quantity += 1;
 
-      }
-
-      // Otherwise add product to cart
-      else {
+      } else {
 
         cart.push({
-          product: product,
+          product,
           quantity: 1
         });
 
       }
 
 
-      // Update cart display
       renderCart();
-
-
-      console.log(
-        'Cart updated:',
-        cart
-      );
     }
 
 
-    // ============================================================
-    // CHANGE QUANTITY
-    // ============================================================
+    /* ============================================================
+       CHANGE QUANTITY
+    ============================================================ */
 
     function changeQuantity(index, delta) {
 
@@ -1037,7 +1151,8 @@
 
 
       const newQty =
-        item.quantity + delta;
+        safeNumber(item.quantity) +
+        safeNumber(delta);
 
 
       if (newQty <= 0) {
@@ -1051,8 +1166,9 @@
 
 
       const stock =
-        Number(
-          item.product.stock_quantity ?? 0
+        safeNumber(
+          item.product.stock_quantity,
+          0
         );
 
 
@@ -1075,17 +1191,17 @@
     }
 
 
-    // ============================================================
-    // CART TOTALS
-    // ============================================================
+    /* ============================================================
+       TOTALS
+    ============================================================ */
 
     function getSubtotal() {
 
       return cart.reduce(
         (sum, item) =>
           sum +
-          Number(item.product.price || 0) *
-          item.quantity,
+          safeNumber(item.product.price) *
+          safeNumber(item.quantity),
         0
       );
     }
@@ -1099,15 +1215,14 @@
         );
 
 
-      const val =
-        parseFloat(
-          input.value
-        );
+      const value =
+        parseFloat(input?.value);
 
 
-      return isNaN(val) || val < 0
-        ? 0
-        : val;
+      return Number.isFinite(value) &&
+        value >= 0
+        ? value
+        : 0;
     }
 
 
@@ -1119,21 +1234,20 @@
         );
 
 
-      const val =
-        parseFloat(
-          input.value
-        );
+      const value =
+        parseFloat(input?.value);
 
 
-      return isNaN(val) || val < 0
-        ? 0
-        : val;
+      return Number.isFinite(value) &&
+        value >= 0
+        ? value
+        : 0;
     }
 
 
-    // ============================================================
-    // RENDER CART
-    // ============================================================
+    /* ============================================================
+       CART
+    ============================================================ */
 
     function renderCart() {
 
@@ -1141,6 +1255,9 @@
         document.getElementById(
           'cart-items'
         );
+
+
+      if (!el) return;
 
 
       if (!cart.length) {
@@ -1158,6 +1275,7 @@
                 display:flex;
                 justify-content:space-between;
                 align-items:center;
+                gap:8px;
                 padding:6px 0;
                 border-bottom:1px solid var(--border);
               "
@@ -1171,7 +1289,9 @@
                     font-size:0.9rem;
                   "
                 >
-                  ${escapeHtml(item.product.name)}
+                  ${escapeHtml(
+                    item.product.name
+                  )}
                 </div>
 
                 <div
@@ -1180,8 +1300,8 @@
                     color:var(--muted);
                   "
                 >
-                  Ksh ${Number(
-                    item.product.price || 0
+                  Ksh ${safeNumber(
+                    item.product.price
                   ).toLocaleString()} each
                 </div>
 
@@ -1232,9 +1352,9 @@
     }
 
 
-    // ============================================================
-    // UPDATE TOTALS
-    // ============================================================
+    /* ============================================================
+       UPDATE TOTALS
+    ============================================================ */
 
     function updateTotals() {
 
@@ -1303,9 +1423,9 @@
       );
 
 
-    // ============================================================
-    // HOLD / RESUME SALES
-    // ============================================================
+    /* ============================================================
+       HELD SALES
+    ============================================================ */
 
     function getHeldSales() {
 
@@ -1323,7 +1443,6 @@
           'Unable to read held sales:',
           error
         );
-
 
         return [];
       }
@@ -1347,17 +1466,20 @@
           'Cart is empty — nothing to hold.'
         );
 
-
         return;
       }
+
+
+      const customerName =
+        document.getElementById(
+          'customer-name'
+        ).value;
 
 
       const label =
         prompt(
           'Label this held sale (e.g. customer name):',
-          document.getElementById(
-            'customer-name'
-          ).value || 'Held sale'
+          customerName || 'Held sale'
         );
 
 
@@ -1390,9 +1512,7 @@
           getMarkup(),
 
         customerName:
-          document.getElementById(
-            'customer-name'
-          ).value,
+          customerName,
 
         customerPhone:
           document.getElementById(
@@ -1405,10 +1525,16 @@
       });
 
 
-      saveHeldSales(
-        held
-      );
+      saveHeldSales(held);
 
+
+      clearCurrentSale();
+
+      renderHeldSales();
+    }
+
+
+    function clearCurrentSale() {
 
       cart = [];
 
@@ -1434,8 +1560,6 @@
 
 
       renderCart();
-
-      renderHeldSales();
     }
 
 
@@ -1468,6 +1592,7 @@
               display:flex;
               justify-content:space-between;
               align-items:center;
+              gap:8px;
               padding:8px 0;
               border-bottom:1px solid var(--border);
               font-size:0.85rem;
@@ -1477,7 +1602,9 @@
             <div>
 
               <strong>
-                ${escapeHtml(h.label)}
+                ${escapeHtml(
+                  h.label
+                )}
               </strong>
 
               <div
@@ -1550,7 +1677,9 @@
 
       const entry =
         held.find(
-          h => h.id === holdId
+          h =>
+            Number(h.id) ===
+            Number(holdId)
         );
 
 
@@ -1569,12 +1698,32 @@
               );
 
 
-            return product
-              ? {
-                  product,
-                  quantity: ci.quantity
-                }
-              : null;
+            if (!product) return null;
+
+
+            const stock =
+              safeNumber(
+                product.stock_quantity,
+                0
+              );
+
+
+            const quantity =
+              Math.min(
+                safeNumber(ci.quantity, 1),
+                stock
+              );
+
+
+            if (quantity <= 0) {
+              return null;
+            }
+
+
+            return {
+              product,
+              quantity
+            };
 
           })
           .filter(Boolean);
@@ -1606,7 +1755,9 @@
 
       saveHeldSales(
         held.filter(
-          h => h.id !== holdId
+          h =>
+            Number(h.id) !==
+            Number(holdId)
         )
       );
 
@@ -1630,7 +1781,9 @@
 
       saveHeldSales(
         getHeldSales().filter(
-          h => h.id !== holdId
+          h =>
+            Number(h.id) !==
+            Number(holdId)
         )
       );
 
@@ -1639,9 +1792,9 @@
     }
 
 
-    // ============================================================
-    // CHECKOUT
-    // ============================================================
+    /* ============================================================
+       CHECKOUT
+    ============================================================ */
 
     async function checkout() {
 
@@ -1667,15 +1820,25 @@
       }
 
 
+      if (!currentStaff?.id) {
+
+        errorEl.textContent =
+          'Staff session is not available. Please log in again.';
+
+        errorEl.style.display =
+          'block';
+
+        return;
+      }
+
+
       const btn =
         document.getElementById(
           'checkout-btn'
         );
 
 
-      btn.disabled =
-        true;
-
+      btn.disabled = true;
 
       btn.textContent =
         'Processing...';
@@ -1723,6 +1886,25 @@
         ).value.trim() || null;
 
 
+      const saleItems =
+        cart.map(item => ({
+
+          product_id:
+            item.product.id,
+
+          unit_price:
+            safeNumber(
+              item.product.price
+            ),
+
+          quantity:
+            safeNumber(
+              item.quantity
+            )
+
+        }));
+
+
       const saleData = {
 
         cashier_id:
@@ -1753,19 +1935,7 @@
           'completed',
 
         items:
-          cart.map(item => ({
-
-            product_id:
-              item.product.id,
-
-            unit_price:
-              item.product.price,
-
-            quantity:
-              item.quantity
-
-          }))
-
+          saleItems
       };
 
 
@@ -1779,9 +1949,14 @@
             item.quantity,
 
           price:
-            item.product.price
+            safeNumber(
+              item.product.price
+            )
 
         }));
+
+
+      let successfulOnlineSale = false;
 
 
       try {
@@ -1797,7 +1972,7 @@
         } = saleData;
 
 
-        // INSERT SALE
+        /* INSERT SALE */
         const {
           data: insertedSale,
           error: saleError
@@ -1814,7 +1989,14 @@
         }
 
 
-        // INSERT SALE ITEMS
+        if (!insertedSale?.id) {
+          throw new Error(
+            'Sale was created without a sale ID.'
+          );
+        }
+
+
+        /* INSERT SALE ITEMS */
         const itemsToInsert =
           items.map(item => ({
             ...item,
@@ -1836,7 +2018,9 @@
         }
 
 
-        // UPDATE STOCK
+        /*
+         * UPDATE STOCK
+         */
         for (const item of items) {
 
           const product =
@@ -1851,8 +2035,9 @@
 
 
           const currentStock =
-            Number(
-              product.stock_quantity ?? 0
+            safeNumber(
+              product.stock_quantity,
+              0
             );
 
 
@@ -1860,7 +2045,9 @@
             Math.max(
               0,
               currentStock -
-              item.quantity
+              safeNumber(
+                item.quantity
+              )
             );
 
 
@@ -1886,8 +2073,20 @@
               stockError
             );
 
+          } else {
+
+            /*
+             * Immediately update local product
+             * data so the POS reflects the
+             * new stock before reloading.
+             */
+            product.stock_quantity =
+              newQty;
           }
         }
+
+
+        successfulOnlineSale = true;
 
 
         showReceipt({
@@ -1918,96 +2117,127 @@
       } catch (err) {
 
         console.warn(
-          'Online checkout failed, queueing offline:',
+          'Online checkout failed:',
           err
         );
 
 
-        await queueSaleOffline(
-          saleData
-        );
+        /*
+         * Do not silently queue unrelated
+         * application errors as offline sales.
+         *
+         * Queue only when offline or when
+         * network/API access failed.
+         */
+        try {
+
+          await queueSaleOffline(
+            saleData
+          );
 
 
-        showReceipt({
+          showReceipt({
 
-          items:
-            receiptItems,
+            items:
+              receiptItems,
 
-          subtotal,
+            subtotal,
 
-          discount,
+            discount,
 
-          markup,
+            markup,
 
-          total,
+            total,
 
-          paymentMethod,
+            paymentMethod,
 
-          customerName,
+            customerName,
 
-          customerPhone,
+            customerPhone,
 
-          date:
-            new Date(),
+            date:
+              new Date(),
 
-          offline:
-            true
+            offline:
+              true
 
-        });
-
-
-        const pending =
-          await getPendingSales();
+          });
 
 
-        updateSyncBadge(
-          pending.length
-        );
+          const pending =
+            await getPendingSales();
+
+
+          updateSyncBadge(
+            pending.length
+          );
+
+        } catch (queueError) {
+
+          console.error(
+            'Unable to queue sale:',
+            queueError
+          );
+
+
+          errorEl.textContent =
+            'Sale could not be completed. Please try again.';
+
+          errorEl.style.display =
+            'block';
+
+
+          btn.disabled =
+            false;
+
+          btn.textContent =
+            'Complete Sale';
+
+          return;
+        }
       }
 
 
-      // CLEAR CART
-      cart = [];
+      /*
+       * Clear the sale only after successful
+       * online checkout or successful offline
+       * queueing.
+       */
+      if (
+        successfulOnlineSale ||
+        !navigator.onLine
+      ) {
 
-
-      renderCart();
-
-
-      document.getElementById(
-        'discount-amount'
-      ).value = 0;
-
-
-      document.getElementById(
-        'markup-amount'
-      ).value = 0;
-
-
-      document.getElementById(
-        'customer-name'
-      ).value = '';
-
-
-      document.getElementById(
-        'customer-phone'
-      ).value = '';
+        clearCurrentSale();
+      }
 
 
       btn.disabled =
         false;
 
-
       btn.textContent =
         'Complete Sale';
 
 
-      await loadProducts();
+      /*
+       * Reload current stock from Supabase.
+       */
+      if (successfulOnlineSale) {
+
+        await loadProducts();
+
+      } else {
+
+        applyProductFilters();
+
+        updateLowStockBanner();
+      }
     }
 
 
-    // ============================================================
-    // RECEIPT
-    // ============================================================
+    /* ============================================================
+       RECEIPT
+    ============================================================ */
 
     function showReceipt(data) {
 
@@ -2021,11 +2251,20 @@
 
       const lines =
         data.items
-          .map(item =>
-            `${item.name} x${item.quantity}`
-              .padEnd(28) +
-            `Ksh ${(Number(item.price) * item.quantity).toLocaleString()}`
-          )
+          .map(item => {
+
+            const lineTotal =
+              safeNumber(item.price) *
+              safeNumber(item.quantity);
+
+
+            return (
+              `${item.name} x${item.quantity}`
+                .padEnd(28) +
+              `Ksh ${lineTotal.toLocaleString()}`
+            );
+
+          })
           .join('\n');
 
 
@@ -2179,6 +2418,23 @@
 
 
         ${
+          data.customerPhone
+            ? `
+              <div
+                style="
+                  font-size:0.8rem;
+                  color:var(--muted);
+                "
+              >
+                Phone:
+                ${escapeHtml(data.customerPhone)}
+              </div>
+            `
+            : ''
+        }
+
+
+        ${
           data.offline
             ? `
               <div
@@ -2189,7 +2445,7 @@
                 "
               >
                 ⚠️ Saved offline —
-                will sync when back online
+                will sync when back online.
               </div>
             `
             : ''
@@ -2238,9 +2494,9 @@
     }
 
 
-    // ============================================================
-    // PRINT RECEIPT
-    // ============================================================
+    /* ============================================================
+       PRINT
+    ============================================================ */
 
     function printReceipt() {
 
@@ -2263,23 +2519,26 @@
           'Please allow pop-ups to print the receipt.'
         );
 
-
         return;
       }
 
 
       printWindow.document.write(`
 
+        <!DOCTYPE html>
+
         <html>
 
         <head>
 
-          <title>Receipt</title>
+          <title>
+            Thuku Enterprise Receipt
+          </title>
 
           <style>
 
             body {
-              font-family:'Courier New', monospace;
+              font-family:'Courier New',monospace;
               font-size:13px;
               padding:20px;
             }
@@ -2307,9 +2566,9 @@
     }
 
 
-    // ============================================================
-    // WHATSAPP RECEIPT
-    // ============================================================
+    /* ============================================================
+       WHATSAPP
+    ============================================================ */
 
     function shareReceiptWhatsapp() {
 
@@ -2324,8 +2583,8 @@
         data.items
           .map(item =>
             `${item.name} x${item.quantity} - Ksh ${(
-              Number(item.price) *
-              item.quantity
+              safeNumber(item.price) *
+              safeNumber(item.quantity)
             ).toLocaleString()}`
           )
           .join('\n');
@@ -2367,8 +2626,11 @@
         phone;
 
 
-      // Convert Kenyan 07XXXXXXXX / 01XXXXXXXX
-      // to international 254XXXXXXXXX
+      /*
+       * Kenyan mobile number:
+       * 07XXXXXXXX -> 2547XXXXXXXX
+       * 01XXXXXXXX -> 2541XXXXXXXX
+       */
       if (
         normalizedPhone.startsWith('0') &&
         normalizedPhone.length === 10
@@ -2393,22 +2655,62 @@
     }
 
 
-    // ============================================================
-    // HTML ESCAPE
-    // ============================================================
+    /* ============================================================
+       HTML ESCAPE
+    ============================================================ */
 
-    function escapeHtml(str) {
+    function escapeHtml(value) {
 
       const div =
         document.createElement('div');
 
 
       div.textContent =
-        str ?? '';
+        value ?? '';
 
 
       return div.innerHTML;
     }
+
+
+    /* ============================================================
+       ONLINE / OFFLINE REFRESH
+    ============================================================ */
+
+    window.addEventListener(
+      'online',
+      async () => {
+
+        console.log(
+          'POS is back online.'
+        );
+
+
+        try {
+
+          await loadProducts();
+
+        } catch (error) {
+
+          console.error(
+            'Failed to refresh products after reconnect:',
+            error
+          );
+        }
+      }
+    );
+
+
+    window.addEventListener(
+      'offline',
+      () => {
+
+        console.log(
+          'POS is offline.'
+        );
+
+      }
+    );
 
   </script>
 
