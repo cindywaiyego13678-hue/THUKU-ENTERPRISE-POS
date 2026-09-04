@@ -1,282 +1,1448 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Owner Dashboard — Thuku Enterprise</title>
-<link rel="stylesheet" href="css/style.css">
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0f2137">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Owner Dashboard — Thuku Enterprise</title>
+
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0f2137">
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
+
 <body>
+
+  <!-- =========================================================
+       TOP BAR
+  ========================================================== -->
   <div class="topbar">
+
     <h1>📊 Owner Dashboard</h1>
+
     <div style="display:flex; align-items:center; gap:12px;">
+
       <span class="role-tag" id="staff-name">...</span>
-      <button class="secondary" onclick="logout()" style="color:#fff; border-color:#3a5169;">Logout</button>
+
+      <button
+        class="secondary"
+        onclick="logout()"
+        style="color:#fff; border-color:#3a5169;">
+        Logout
+      </button>
+
     </div>
+
   </div>
 
+
+  <!-- =========================================================
+       MAIN CONTENT
+  ========================================================== -->
   <div class="container">
+
+    <!-- Navigation -->
     <div class="nav-tabs" id="nav-tabs"></div>
 
+
+    <!-- =======================================================
+         STATISTICS
+    ======================================================== -->
     <div class="grid grid-4" style="margin-bottom:20px;">
+
       <div class="stat-card">
         <div class="label">Today's Revenue</div>
         <div class="value good" id="stat-today-revenue">—</div>
       </div>
+
       <div class="stat-card">
         <div class="label">Today's Sales</div>
         <div class="value" id="stat-today-count">—</div>
       </div>
+
       <div class="stat-card">
         <div class="label">This Week</div>
         <div class="value" id="stat-week-revenue">—</div>
       </div>
+
       <div class="stat-card">
         <div class="label">Low Stock Items</div>
         <div class="value alert" id="stat-low-stock">—</div>
       </div>
+
       <div class="stat-card">
         <div class="label">Today's Gross Profit</div>
         <div class="value good" id="stat-today-profit">—</div>
       </div>
+
       <div class="stat-card">
         <div class="label">Today's Losses</div>
         <div class="value alert" id="stat-today-losses">—</div>
       </div>
+
     </div>
 
-    <div class="grid" style="grid-template-columns: 1.2fr 1fr;">
-      <div class="card">
-        <h3 style="margin-top:0;">Recent Sales</h3>
-        <div id="recent-sales" style="max-height:400px; overflow-y:auto;"></div>
-      </div>
+
+    <!-- =======================================================
+         RECENT SALES + LOW STOCK
+    ======================================================== -->
+    <div class="grid" style="grid-template-columns:1.2fr 1fr;">
 
       <div class="card">
-        <h3 style="margin-top:0;">⚠️ Low Stock</h3>
+
+        <h3 style="margin-top:0;">
+          Recent Sales
+        </h3>
+
+        <div
+          id="recent-sales"
+          style="max-height:400px; overflow-y:auto;">
+        </div>
+
+      </div>
+
+
+      <div class="card">
+
+        <h3 style="margin-top:0;">
+          ⚠️ Low Stock
+        </h3>
+
         <div id="low-stock-list"></div>
+
       </div>
+
     </div>
 
+
+    <!-- =======================================================
+         INCOMING TRANSFERS
+    ======================================================== -->
     <div class="card">
-      <h3 style="margin-top:0;">🚚 Incoming Transfers from Store</h3>
+
+      <h3 style="margin-top:0;">
+        🚚 Incoming Transfers from Store
+      </h3>
+
       <div id="incoming-transfers-list"></div>
+
     </div>
 
+
+    <!-- =======================================================
+         TOP SELLERS
+    ======================================================== -->
     <div class="card">
-      <h3 style="margin-top:0;">🏆 Top Sellers (Last 30 Days)</h3>
+
+      <h3 style="margin-top:0;">
+        🏆 Top Sellers (Last 30 Days)
+      </h3>
+
       <div id="top-sellers"></div>
+
     </div>
+
   </div>
+
+
+  <!-- =========================================================
+       SCRIPTS
+  ========================================================== -->
 
   <script src="js/offline-cache.js"></script>
   <script src="js/supabase-config.js"></script>
+
   <script>
+
+    // ==========================================================
+    // LOW STOCK DEFAULT
+    //
+    // Any product with 5 or fewer units is considered
+    // low stock when no custom reorder_level is set.
+    // ==========================================================
+
+    const DEFAULT_REORDER_LEVEL = 5;
+
+
+    // ==========================================================
+    // CURRENT STAFF
+    // ==========================================================
+
     let currentStaff = null;
 
-    (async () => {
-      currentStaff = await requireAuth(['admin','owner']);
-      if (!currentStaff) return;
-      document.getElementById('staff-name').textContent = `${currentStaff.full_name} (${currentStaff.role})`;
-      renderNav(currentStaff.role);
-      await Promise.all([
-        loadStats(),
-        loadRecentSales(),
-        loadLowStock(),
-        loadTopSellers(),
-        loadIncomingTransfers()
-      ]);
-      setInterval(() => {
-        loadStats();
-        loadRecentSales();
-      }, 60000);
+
+    // ==========================================================
+    // PAGE INITIALIZATION
+    // ==========================================================
+
+    (async function initDashboard() {
+
+      try {
+
+        currentStaff =
+          await requireAuth(['admin', 'owner']);
+
+        if (!currentStaff) return;
+
+
+        document.getElementById(
+          'staff-name'
+        ).textContent =
+          `${currentStaff.full_name} (${currentStaff.role})`;
+
+
+        renderNav(currentStaff.role);
+
+
+        await Promise.all([
+          loadStats(),
+          loadRecentSales(),
+          loadLowStock(),
+          loadTopSellers(),
+          loadIncomingTransfers()
+        ]);
+
+
+      } catch (error) {
+
+        console.error(
+          'Dashboard initialization error:',
+          error
+        );
+
+      }
+
     })();
 
+
+    // ==========================================================
+    // AUTO REFRESH EVERY 60 SECONDS
+    // ==========================================================
+
+    setInterval(async () => {
+
+      try {
+
+        await loadStats();
+        await loadRecentSales();
+        await loadLowStock();
+
+      } catch (error) {
+
+        console.error(
+          'Dashboard refresh error:',
+          error
+        );
+
+      }
+
+    }, 60000);
+
+
+    // ==========================================================
+    // NAVIGATION
+    // ==========================================================
+
     function renderNav(role) {
-      const tabs = [{ href: 'pos.html', label: 'POS' }];
-      if (role === 'admin') tabs.push({ href: 'inventory.html', label: 'Inventory' });
-      tabs.push({ href: 'dashboard.html', label: 'Dashboard' });
-      if (role === 'admin') tabs.push({ href: 'staff.html', label: 'Staff' });
-      tabs.push({ href: 'reports.html', label: 'Reports' });
-      document.getElementById('nav-tabs').innerHTML = tabs.map(t =>
-        `<a href="${t.href}" class="${t.href === 'dashboard.html' ? 'active' : ''}">${t.label}</a>`
-      ).join('');
+
+      const tabs = [
+        {
+          href: 'pos.html',
+          label: 'POS'
+        }
+      ];
+
+
+      if (role === 'admin') {
+
+        tabs.push({
+          href: 'inventory.html',
+          label: 'Inventory'
+        });
+
+      }
+
+
+      tabs.push({
+        href: 'dashboard.html',
+        label: 'Dashboard'
+      });
+
+
+      if (role === 'admin') {
+
+        tabs.push({
+          href: 'staff.html',
+          label: 'Staff'
+        });
+
+      }
+
+
+      tabs.push({
+        href: 'reports.html',
+        label: 'Reports'
+      });
+
+
+      document.getElementById(
+        'nav-tabs'
+      ).innerHTML =
+
+        tabs.map(tab => {
+
+          const active =
+            tab.href === 'dashboard.html'
+              ? 'active'
+              : '';
+
+
+          return `
+            <a
+              href="${escapeHtml(tab.href)}"
+              class="${active}">
+              ${escapeHtml(tab.label)}
+            </a>
+          `;
+
+        }).join('');
+
     }
+
+
+    // ==========================================================
+    // LOW STOCK THRESHOLD
+    // ==========================================================
+
+    function getReorderLevel(product) {
+
+      if (
+        product.reorder_level !== null &&
+        product.reorder_level !== undefined &&
+        product.reorder_level !== ''
+      ) {
+
+        return Number(product.reorder_level);
+
+      }
+
+
+      return DEFAULT_REORDER_LEVEL;
+
+    }
+
+
+    function isLowStock(product) {
+
+      const stock =
+        Number(product.stock_quantity || 0);
+
+      const reorderLevel =
+        getReorderLevel(product);
+
+
+      return stock <= reorderLevel;
+
+    }
+
+
+    // ==========================================================
+    // DATE HELPERS
+    // ==========================================================
 
     function startOfDayISO() {
-      const d = new Date(); d.setHours(0,0,0,0); return d.toISOString();
+
+      const date = new Date();
+
+      date.setHours(0, 0, 0, 0);
+
+      return date.toISOString();
+
     }
+
+
     function startOfWeekISO() {
-      const d = new Date();
-      const day = d.getDay();
-      const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-      d.setDate(diff); d.setHours(0,0,0,0);
-      return d.toISOString();
+
+      const date = new Date();
+
+      const day = date.getDay();
+
+      const diff =
+        date.getDate() -
+        day +
+        (day === 0 ? -6 : 1);
+
+
+      date.setDate(diff);
+
+      date.setHours(0, 0, 0, 0);
+
+      return date.toISOString();
+
     }
+
+
+    // ==========================================================
+    // LOAD DASHBOARD STATISTICS
+    // ==========================================================
 
     async function loadStats() {
-      const todayStart = startOfDayISO();
-      const weekStart = startOfWeekISO();
 
-      const { data: todaySales } = await supabaseClient
-        .from('sales').select('total_amount').eq('status','completed').gte('created_at', todayStart);
-      const { data: weekSales } = await supabaseClient
-        .from('sales').select('total_amount').eq('status','completed').gte('created_at', weekStart);
-      const { data: lowStock } = await supabaseClient
-        .from('products').select('id, stock_quantity, reorder_level').eq('is_active', true);
-      const { data: todayItems } = await supabaseClient
-        .from('sale_items')
-        .select('quantity, unit_price, products(cost), sales!inner(created_at, status)')
-        .gte('sales.created_at', todayStart)
-        .eq('sales.status', 'completed');
-      const { data: todayLosses } = await supabaseClient
-        .from('stock_losses')
-        .select('cost_value')
+      const todayStart =
+        startOfDayISO();
+
+      const weekStart =
+        startOfWeekISO();
+
+
+      // --------------------------------------------------------
+      // TODAY'S SALES
+      // --------------------------------------------------------
+
+      const {
+        data: todaySales,
+        error: todaySalesError
+      } = await supabaseClient
+        .from('sales')
+        .select('total_amount')
+        .eq('status', 'completed')
         .gte('created_at', todayStart);
 
-      const todayRevenue = (todaySales || []).reduce((s, r) => s + Number(r.total_amount), 0);
-      const weekRevenue = (weekSales || []).reduce((s, r) => s + Number(r.total_amount), 0);
-      const lowStockCount = (lowStock || []).filter(p => p.stock_quantity <= (p.reorder_level ?? 2)).length;
-      const todayProfit = (todayItems || []).reduce((s, i) => {
-        const cost = Number(i.products?.cost || 0);
-        return s + (Number(i.unit_price) - cost) * (i.quantity || 1);
-      }, 0);
-      const todayLossValue = (todayLosses || []).reduce((s, l) => s + Number(l.cost_value || 0), 0);
 
-      document.getElementById('stat-today-revenue').textContent = `Ksh ${todayRevenue.toLocaleString()}`;
-      document.getElementById('stat-today-count').textContent = (todaySales || []).length;
-      document.getElementById('stat-week-revenue').textContent = `Ksh ${weekRevenue.toLocaleString()}`;
-      document.getElementById('stat-low-stock').textContent = lowStockCount;
-      document.getElementById('stat-today-profit').textContent = `Ksh ${Math.round(todayProfit).toLocaleString()}`;
-      document.getElementById('stat-today-losses').textContent = `Ksh ${Math.round(todayLossValue).toLocaleString()}`;
+      if (todaySalesError) {
+
+        console.error(
+          'Today sales error:',
+          todaySalesError
+        );
+
+      }
+
+
+      // --------------------------------------------------------
+      // THIS WEEK'S SALES
+      // --------------------------------------------------------
+
+      const {
+        data: weekSales,
+        error: weekSalesError
+      } = await supabaseClient
+        .from('sales')
+        .select('total_amount')
+        .eq('status', 'completed')
+        .gte('created_at', weekStart);
+
+
+      if (weekSalesError) {
+
+        console.error(
+          'Weekly sales error:',
+          weekSalesError
+        );
+
+      }
+
+
+      // --------------------------------------------------------
+      // PRODUCTS
+      // --------------------------------------------------------
+
+      const {
+        data: products,
+        error: productsError
+      } = await supabaseClient
+        .from('products')
+        .select(`
+          id,
+          name,
+          stock_quantity,
+          reorder_level
+        `)
+        .eq('is_active', true);
+
+
+      if (productsError) {
+
+        console.error(
+          'Products error:',
+          productsError
+        );
+
+      }
+
+
+      // --------------------------------------------------------
+      // TODAY'S SALE ITEMS
+      // --------------------------------------------------------
+
+      const {
+        data: todayItems,
+        error: todayItemsError
+      } = await supabaseClient
+        .from('sale_items')
+        .select(`
+          quantity,
+          unit_price,
+          products(cost),
+          sales!inner(
+            created_at,
+            status
+          )
+        `)
+        .gte(
+          'sales.created_at',
+          todayStart
+        )
+        .eq(
+          'sales.status',
+          'completed'
+        );
+
+
+      if (todayItemsError) {
+
+        console.error(
+          'Today items error:',
+          todayItemsError
+        );
+
+      }
+
+
+      // --------------------------------------------------------
+      // TODAY'S LOSSES
+      // --------------------------------------------------------
+
+      const {
+        data: todayLosses,
+        error: lossesError
+      } = await supabaseClient
+        .from('stock_losses')
+        .select('cost_value')
+        .gte(
+          'created_at',
+          todayStart
+        );
+
+
+      if (lossesError) {
+
+        console.error(
+          'Losses error:',
+          lossesError
+        );
+
+      }
+
+
+      // ========================================================
+      // CALCULATE REVENUE
+      // ========================================================
+
+      const todayRevenue =
+        (todaySales || []).reduce(
+          (sum, sale) =>
+            sum +
+            Number(
+              sale.total_amount || 0
+            ),
+          0
+        );
+
+
+      const weekRevenue =
+        (weekSales || []).reduce(
+          (sum, sale) =>
+            sum +
+            Number(
+              sale.total_amount || 0
+            ),
+          0
+        );
+
+
+      // ========================================================
+      // CALCULATE LOW STOCK
+      //
+      // IMPORTANT:
+      // If reorder_level is NULL, default = 5.
+      // ========================================================
+
+      const lowStockProducts =
+        (products || []).filter(
+          product => isLowStock(product)
+        );
+
+
+      const lowStockCount =
+        lowStockProducts.length;
+
+
+      // ========================================================
+      // CALCULATE GROSS PROFIT
+      // ========================================================
+
+      const todayProfit =
+        (todayItems || []).reduce(
+          (sum, item) => {
+
+            const sellingPrice =
+              Number(
+                item.unit_price || 0
+              );
+
+
+            const cost =
+              Number(
+                item.products?.cost || 0
+              );
+
+
+            const quantity =
+              Number(
+                item.quantity || 1
+              );
+
+
+            return sum +
+              (
+                (sellingPrice - cost) *
+                quantity
+              );
+
+          },
+          0
+        );
+
+
+      // ========================================================
+      // CALCULATE LOSSES
+      // ========================================================
+
+      const todayLossValue =
+        (todayLosses || []).reduce(
+          (sum, loss) =>
+            sum +
+            Number(
+              loss.cost_value || 0
+            ),
+          0
+        );
+
+
+      // ========================================================
+      // UPDATE STAT CARDS
+      // ========================================================
+
+      document.getElementById(
+        'stat-today-revenue'
+      ).textContent =
+        `Ksh ${formatNumber(todayRevenue)}`;
+
+
+      document.getElementById(
+        'stat-today-count'
+      ).textContent =
+        (todaySales || []).length;
+
+
+      document.getElementById(
+        'stat-week-revenue'
+      ).textContent =
+        `Ksh ${formatNumber(weekRevenue)}`;
+
+
+      document.getElementById(
+        'stat-low-stock'
+      ).textContent =
+        lowStockCount;
+
+
+      document.getElementById(
+        'stat-today-profit'
+      ).textContent =
+        `Ksh ${formatNumber(
+          Math.round(todayProfit)
+        )}`;
+
+
+      document.getElementById(
+        'stat-today-losses'
+      ).textContent =
+        `Ksh ${formatNumber(
+          Math.round(todayLossValue)
+        )}`;
+
     }
+
+
+    // ==========================================================
+    // RECENT SALES
+    // ==========================================================
 
     async function loadRecentSales() {
-      const { data, error } = await supabaseClient
+
+      const {
+        data,
+        error
+      } = await supabaseClient
         .from('sales')
-        .select('*, staff(full_name), sale_items(*, products(name))')
-        .order('created_at', { ascending: false })
+        .select(`
+          *,
+          staff(full_name),
+          sale_items(
+            *,
+            products(name)
+          )
+        `)
+        .order('created_at', {
+          ascending: false
+        })
         .limit(15);
-      const el = document.getElementById('recent-sales');
-      if (error || !data || !data.length) {
-        el.innerHTML = '<div class="empty-state">No sales yet.</div>';
+
+
+      const element =
+        document.getElementById(
+          'recent-sales'
+        );
+
+
+      if (error) {
+
+        console.error(
+          'Recent sales error:',
+          error
+        );
+
+        element.innerHTML =
+          '<div class="empty-state">Unable to load sales.</div>';
+
         return;
+
       }
-      el.innerHTML = data.map(s => {
-        const items = (s.sale_items || []).map(i => `${i.products?.name}${i.quantity > 1 ? ' x' + i.quantity : ''}`).filter(Boolean).join(', ');
-        const time = new Date(s.created_at).toLocaleString('en-KE', { dateStyle: 'medium', timeStyle: 'short' });
-        return `
-          <div style="padding:8px 0; border-bottom:1px solid var(--border);">
-            <div style="display:flex; justify-content:space-between;">
-              <strong>Ksh ${Number(s.total_amount).toLocaleString()}</strong>
-              <span class="badge in_stock">${s.payment_method}</span>
+
+
+      if (!data || !data.length) {
+
+        element.innerHTML =
+          '<div class="empty-state">No sales yet.</div>';
+
+        return;
+
+      }
+
+
+      element.innerHTML =
+        data.map(sale => {
+
+          const items =
+            (sale.sale_items || [])
+              .map(item => {
+
+                const name =
+                  item.products?.name ||
+                  'Unknown product';
+
+
+                const quantity =
+                  Number(
+                    item.quantity || 1
+                  );
+
+
+                return quantity > 1
+                  ? `${name} x${quantity}`
+                  : name;
+
+              })
+              .join(', ');
+
+
+          const time =
+            new Date(
+              sale.created_at
+            ).toLocaleString(
+              'en-KE',
+              {
+                dateStyle: 'medium',
+                timeStyle: 'short'
+              }
+            );
+
+
+          return `
+            <div
+              style="
+                padding:8px 0;
+                border-bottom:1px solid var(--border);
+              "
+            >
+
+              <div
+                style="
+                  display:flex;
+                  justify-content:space-between;
+                "
+              >
+
+                <strong>
+                  Ksh ${formatNumber(
+                    Number(
+                      sale.total_amount || 0
+                    )
+                  )}
+                </strong>
+
+                <span class="badge in_stock">
+                  ${escapeHtml(
+                    sale.payment_method || '—'
+                  )}
+                </span>
+
+              </div>
+
+
+              <div
+                style="
+                  font-size:0.8rem;
+                  color:var(--muted);
+                "
+              >
+                ${escapeHtml(items)}
+              </div>
+
+
+              <div
+                style="
+                  font-size:0.75rem;
+                  color:var(--muted);
+                "
+              >
+                ${escapeHtml(time)}
+                ·
+                ${escapeHtml(
+                  sale.staff?.full_name ||
+                  'staff'
+                )}
+              </div>
+
             </div>
-            <div style="font-size:0.8rem; color:var(--muted);">${escapeHtml(items)}</div>
-            <div style="font-size:0.75rem; color:var(--muted);">${time} · ${s.staff?.full_name || 'staff'}</div>
-          </div>`;
-      }).join('');
+          `;
+
+        }).join('');
+
     }
+
+
+    // ==========================================================
+    // LOW STOCK LIST
+    // ==========================================================
 
     async function loadLowStock() {
-      const { data, error } = await supabaseClient
-        .from('products').select('id, name, stock_quantity, reorder_level').eq('is_active', true);
-      const el = document.getElementById('low-stock-list');
-      const low = (data || []).filter(p => p.stock_quantity <= (p.reorder_level ?? 2));
-      if (error || !low.length) {
-        el.innerHTML = '<div class="empty-state">All stock levels healthy.</div>';
+
+      const {
+        data,
+        error
+      } = await supabaseClient
+        .from('products')
+        .select(`
+          id,
+          name,
+          stock_quantity,
+          reorder_level
+        `)
+        .eq('is_active', true)
+        .order('stock_quantity', {
+          ascending: true
+        });
+
+
+      const element =
+        document.getElementById(
+          'low-stock-list'
+        );
+
+
+      if (error) {
+
+        console.error(
+          'Low stock error:',
+          error
+        );
+
+        element.innerHTML =
+          '<div class="empty-state">Unable to load stock.</div>';
+
         return;
+
       }
-      el.innerHTML = low.map(p => `
-        <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--border); font-size:0.88rem;">
-          <span>${escapeHtml(p.name)}</span>
-          <span class="badge low">${p.stock_quantity} left</span>
-        </div>`).join('');
+
+
+      const lowStock =
+        (data || []).filter(
+          product => isLowStock(product)
+        );
+
+
+      if (!lowStock.length) {
+
+        element.innerHTML =
+          '<div class="empty-state">All stock levels healthy.</div>';
+
+        return;
+
+      }
+
+
+      element.innerHTML =
+        lowStock.map(product => {
+
+          const stock =
+            Number(
+              product.stock_quantity || 0
+            );
+
+
+          const reorderLevel =
+            getReorderLevel(product);
+
+
+          let badgeText;
+
+
+          if (stock <= 0) {
+
+            badgeText =
+              'OUT OF STOCK';
+
+          } else {
+
+            badgeText =
+              `${stock} left`;
+
+          }
+
+
+          return `
+            <div
+              style="
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+                gap:10px;
+                padding:8px 0;
+                border-bottom:1px solid var(--border);
+                font-size:0.88rem;
+              "
+            >
+
+              <div>
+
+                <div>
+                  <strong>
+                    ${escapeHtml(
+                      product.name
+                    )}
+                  </strong>
+                </div>
+
+                <div
+                  style="
+                    font-size:0.72rem;
+                    color:var(--muted);
+                  "
+                >
+                  Reorder level: ${reorderLevel}
+                </div>
+
+              </div>
+
+
+              <span class="badge low">
+                ${badgeText}
+              </span>
+
+            </div>
+          `;
+
+        }).join('');
+
     }
+
+
+    // ==========================================================
+    // TOP SELLERS
+    // ==========================================================
 
     async function loadTopSellers() {
-      const thirtyDaysAgo = new Date(Date.now() - 30*24*60*60*1000).toISOString();
-      const { data, error } = await supabaseClient
-        .from('sale_items')
-        .select('product_id, unit_price, quantity, products(name), sales!inner(created_at, status)')
-        .gte('sales.created_at', thirtyDaysAgo)
-        .eq('sales.status', 'completed');
 
-      const el = document.getElementById('top-sellers');
-      if (error || !data || !data.length) {
-        el.innerHTML = '<div class="empty-state">No sales in the last 30 days.</div>';
+      const thirtyDaysAgo =
+        new Date(
+          Date.now() -
+          30 * 24 * 60 * 60 * 1000
+        ).toISOString();
+
+
+      const {
+        data,
+        error
+      } = await supabaseClient
+        .from('sale_items')
+        .select(`
+          product_id,
+          unit_price,
+          quantity,
+          products(name),
+          sales!inner(
+            created_at,
+            status
+          )
+        `)
+        .gte(
+          'sales.created_at',
+          thirtyDaysAgo
+        )
+        .eq(
+          'sales.status',
+          'completed'
+        );
+
+
+      const element =
+        document.getElementById(
+          'top-sellers'
+        );
+
+
+      if (error) {
+
+        console.error(
+          'Top sellers error:',
+          error
+        );
+
+        element.innerHTML =
+          '<div class="empty-state">Unable to load top sellers.</div>';
+
         return;
+
       }
+
+
+      if (!data || !data.length) {
+
+        element.innerHTML =
+          '<div class="empty-state">No sales in the last 30 days.</div>';
+
+        return;
+
+      }
+
 
       const tally = {};
-      data.forEach(item => {
-        const name = item.products?.name || 'Unknown';
-        if (!tally[name]) tally[name] = { count: 0, revenue: 0 };
-        tally[name].count += item.quantity || 1;
-        tally[name].revenue += Number(item.unit_price) * (item.quantity || 1);
-      });
-      const sorted = Object.entries(tally).sort((a,b) => b[1].count - a[1].count).slice(0, 8);
 
-      el.innerHTML = `
+
+      data.forEach(item => {
+
+        const productId =
+          item.product_id;
+
+
+        const productName =
+          item.products?.name ||
+          'Unknown';
+
+
+        if (!tally[productId]) {
+
+          tally[productId] = {
+            name: productName,
+            count: 0,
+            revenue: 0
+          };
+
+        }
+
+
+        const quantity =
+          Number(
+            item.quantity || 1
+          );
+
+
+        const price =
+          Number(
+            item.unit_price || 0
+          );
+
+
+        tally[productId].count +=
+          quantity;
+
+
+        tally[productId].revenue +=
+          price * quantity;
+
+      });
+
+
+      const sorted =
+        Object.values(tally)
+          .sort(
+            (a, b) =>
+              b.count - a.count
+          )
+          .slice(0, 8);
+
+
+      element.innerHTML = `
         <table>
-          <thead><tr><th>Product</th><th>Units Sold</th><th>Revenue</th></tr></thead>
+
+          <thead>
+
+            <tr>
+              <th>Product</th>
+              <th>Units Sold</th>
+              <th>Revenue</th>
+            </tr>
+
+          </thead>
+
           <tbody>
-            ${sorted.map(([name, s]) => `
-              <tr><td>${escapeHtml(name)}</td><td>${s.count}</td><td>Ksh ${s.revenue.toLocaleString()}</td></tr>
+
+            ${sorted.map(item => `
+              <tr>
+
+                <td>
+                  ${escapeHtml(item.name)}
+                </td>
+
+                <td>
+                  ${item.count}
+                </td>
+
+                <td>
+                  Ksh ${formatNumber(
+                    item.revenue
+                  )}
+                </td>
+
+              </tr>
             `).join('')}
+
           </tbody>
-        </table>`;
+
+        </table>
+      `;
+
     }
+
+
+    // ==========================================================
+    // INCOMING TRANSFERS
+    // ==========================================================
 
     async function loadIncomingTransfers() {
-      const { data, error } = await supabaseClient
+
+      const {
+        data,
+        error
+      } = await supabaseClient
         .from('incoming_transfers')
         .select('*')
-        .order('received_at', { ascending: false })
+        .order('received_at', {
+          ascending: false
+        })
         .limit(20);
-      const el = document.getElementById('incoming-transfers-list');
-      if (error || !data || !data.length) {
-        el.innerHTML = '<div class="empty-state">No transfers from the store yet.</div>';
+
+
+      const element =
+        document.getElementById(
+          'incoming-transfers-list'
+        );
+
+
+      if (error) {
+
+        console.error(
+          'Incoming transfers error:',
+          error
+        );
+
+        element.innerHTML =
+          '<div class="empty-state">Unable to load transfers.</div>';
+
         return;
+
       }
-      el.innerHTML = `
+
+
+      if (!data || !data.length) {
+
+        element.innerHTML =
+          '<div class="empty-state">No transfers from the store yet.</div>';
+
+        return;
+
+      }
+
+
+      element.innerHTML = `
         <table>
-          <thead><tr><th>Date</th><th>Sent By</th><th>Items</th><th>Value</th><th>Payment</th><th></th></tr></thead>
+
+          <thead>
+
+            <tr>
+              <th>Date</th>
+              <th>Sent By</th>
+              <th>Items</th>
+              <th>Value</th>
+              <th>Payment</th>
+              <th></th>
+            </tr>
+
+          </thead>
+
           <tbody>
-            ${data.map(t => {
-              const dateStr = new Date(t.received_at).toLocaleString('en-KE', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
-              const items = (t.items || []).map(i => `${i.quantity} × ${escapeHtml(i.product_name)}`).join('<br>');
-              const badgeClass = t.payment_status === 'paid' ? 'in_stock' : t.payment_status === 'partial' ? 'low' : 'low';
+
+            ${data.map(transfer => {
+
+              const date =
+                new Date(
+                  transfer.received_at
+                ).toLocaleString(
+                  'en-KE',
+                  {
+                    day: 'numeric',
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  }
+                );
+
+
+              const items =
+                Array.isArray(
+                  transfer.items
+                )
+                  ? transfer.items.map(item => {
+
+                      return `
+                        ${Number(
+                          item.quantity || 0
+                        )}
+                        ×
+                        ${escapeHtml(
+                          item.product_name ||
+                          'Unknown'
+                        )}
+                      `;
+
+                    }).join('<br>')
+
+                  : '—';
+
+
+              const paymentStatus =
+                transfer.payment_status ||
+                'unpaid';
+
+
+              const badgeClass =
+                paymentStatus === 'paid'
+                  ? 'in_stock'
+                  : 'low';
+
+
               return `
                 <tr>
-                  <td style="font-size:0.82rem; white-space:nowrap;">${dateStr}</td>
-                  <td style="font-size:0.85rem;">${escapeHtml(t.sent_by || '—')}</td>
-                  <td style="font-size:0.82rem;">${items || '—'}</td>
-                  <td>Ksh ${Number(t.total_value || 0).toLocaleString()}</td>
-                  <td><span class="badge ${badgeClass}">${t.payment_status}</span></td>
-                  <td>${t.payment_status !== 'paid' ? `<button class="secondary" style="padding:5px 8px; font-size:0.78rem;" onclick='markTransferPaid(${JSON.stringify(t.id)})'>Mark Paid</button>` : ''}</td>
-                </tr>`;
+
+                  <td
+                    style="
+                      font-size:0.82rem;
+                      white-space:nowrap;
+                    "
+                  >
+                    ${escapeHtml(date)}
+                  </td>
+
+
+                  <td
+                    style="font-size:0.85rem;"
+                  >
+                    ${escapeHtml(
+                      transfer.sent_by ||
+                      '—'
+                    )}
+                  </td>
+
+
+                  <td
+                    style="font-size:0.82rem;"
+                  >
+                    ${items}
+                  </td>
+
+
+                  <td>
+                    Ksh ${formatNumber(
+                      Number(
+                        transfer.total_value ||
+                        0
+                      )
+                    )}
+                  </td>
+
+
+                  <td>
+
+                    <span
+                      class="badge ${badgeClass}"
+                    >
+                      ${escapeHtml(
+                        paymentStatus
+                      )}
+                    </span>
+
+                  </td>
+
+
+                  <td>
+
+                    ${
+                      paymentStatus !== 'paid'
+                        ? `
+                          <button
+                            class="secondary"
+                            style="
+                              padding:5px 8px;
+                              font-size:0.78rem;
+                            "
+                            onclick="markTransferPaid('${escapeJs(
+                              transfer.id
+                            )}')"
+                          >
+                            Mark Paid
+                          </button>
+                        `
+                        : ''
+                    }
+
+                  </td>
+
+                </tr>
+              `;
+
             }).join('')}
+
           </tbody>
-        </table>`;
+
+        </table>
+      `;
+
     }
+
+
+    // ==========================================================
+    // MARK TRANSFER AS PAID
+    // ==========================================================
 
     async function markTransferPaid(id) {
-      if (!confirm('Mark this transfer as fully paid?')) return;
-      const { error } = await supabaseClient
+
+      if (
+        !confirm(
+          'Mark this transfer as fully paid?'
+        )
+      ) {
+
+        return;
+
+      }
+
+
+      const {
+        error
+      } = await supabaseClient
         .from('incoming_transfers')
-        .update({ payment_status: 'paid' })
+        .update({
+          payment_status: 'paid'
+        })
         .eq('id', id);
-      if (error) { alert('Error: ' + error.message); return; }
+
+
+      if (error) {
+
+        console.error(
+          'Payment update error:',
+          error
+        );
+
+        alert(
+          'Error: ' +
+          error.message
+        );
+
+        return;
+
+      }
+
+
       await loadIncomingTransfers();
+
     }
 
-    function escapeHtml(str) {
-      const div = document.createElement('div');
-      div.textContent = str ?? '';
-      return div.innerHTML;
+
+    // ==========================================================
+    // NUMBER FORMAT
+    // ==========================================================
+
+    function formatNumber(value) {
+
+      return Number(value || 0)
+        .toLocaleString(
+          'en-KE',
+          {
+            maximumFractionDigits: 2
+          }
+        );
+
     }
+
+
+    // ==========================================================
+    // HTML ESCAPING
+    // ==========================================================
+
+    function escapeHtml(value) {
+
+      const div =
+        document.createElement('div');
+
+      div.textContent =
+        value ?? '';
+
+      return div.innerHTML;
+
+    }
+
+
+    // ==========================================================
+    // JAVASCRIPT STRING ESCAPING
+    // ==========================================================
+
+    function escapeJs(value) {
+
+      return String(value ?? '')
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\'");
+
+    }
+
   </script>
+
 </body>
 </html>
+```
