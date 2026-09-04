@@ -16,9 +16,6 @@
 
 <body>
 
-  <!-- =========================================================
-       TOP BAR
-  ========================================================== -->
   <div class="topbar">
 
     <h1>📊 Owner Dashboard</h1>
@@ -39,18 +36,15 @@
   </div>
 
 
-  <!-- =========================================================
-       MAIN CONTENT
-  ========================================================== -->
   <div class="container">
 
-    <!-- Navigation -->
     <div class="nav-tabs" id="nav-tabs"></div>
 
 
     <!-- =======================================================
          STATISTICS
     ======================================================== -->
+
     <div class="grid grid-4" style="margin-bottom:20px;">
 
       <div class="stat-card">
@@ -89,6 +83,7 @@
     <!-- =======================================================
          RECENT SALES + LOW STOCK
     ======================================================== -->
+
     <div class="grid" style="grid-template-columns:1.2fr 1fr;">
 
       <div class="card">
@@ -121,6 +116,7 @@
     <!-- =======================================================
          INCOMING TRANSFERS
     ======================================================== -->
+
     <div class="card">
 
       <h3 style="margin-top:0;">
@@ -135,6 +131,7 @@
     <!-- =======================================================
          TOP SELLERS
     ======================================================== -->
+
     <div class="card">
 
       <h3 style="margin-top:0;">
@@ -158,13 +155,13 @@
   <script>
 
     // ==========================================================
-    // LOW STOCK DEFAULT
+    // FIXED LOW STOCK THRESHOLD
     //
-    // Any product with 5 or fewer units is considered
-    // low stock when no custom reorder_level is set.
+    // EVERY product with stock 5 or below is LOW STOCK.
+    // reorder_level is NOT used.
     // ==========================================================
 
-    const DEFAULT_REORDER_LEVEL = 5;
+    const LOW_STOCK_THRESHOLD = 5;
 
 
     // ==========================================================
@@ -175,7 +172,7 @@
 
 
     // ==========================================================
-    // PAGE INITIALIZATION
+    // INITIALIZE DASHBOARD
     // ==========================================================
 
     (async function initDashboard() {
@@ -226,9 +223,11 @@
 
       try {
 
-        await loadStats();
-        await loadRecentSales();
-        await loadLowStock();
+        await Promise.all([
+          loadStats(),
+          loadRecentSales(),
+          loadLowStock()
+        ]);
 
       } catch (error) {
 
@@ -314,37 +313,23 @@
 
 
     // ==========================================================
-    // LOW STOCK THRESHOLD
+    // LOW STOCK CHECK
+    //
+    // THIS IS THE ONLY RULE:
+    //
+    // 0 - 5  = LOW STOCK
+    // 6+     = HEALTHY
+    //
+    // reorder_level is intentionally ignored.
     // ==========================================================
-
-    function getReorderLevel(product) {
-
-      if (
-        product.reorder_level !== null &&
-        product.reorder_level !== undefined &&
-        product.reorder_level !== ''
-      ) {
-
-        return Number(product.reorder_level);
-
-      }
-
-
-      return DEFAULT_REORDER_LEVEL;
-
-    }
-
 
     function isLowStock(product) {
 
       const stock =
-        Number(product.stock_quantity || 0);
-
-      const reorderLevel =
-        getReorderLevel(product);
+        Number(product.stock_quantity ?? 0);
 
 
-      return stock <= reorderLevel;
+      return stock <= LOW_STOCK_THRESHOLD;
 
     }
 
@@ -448,6 +433,10 @@
 
       // --------------------------------------------------------
       // PRODUCTS
+      //
+      // IMPORTANT:
+      // Only stock_quantity is needed for low-stock detection.
+      // reorder_level is deliberately NOT selected or used.
       // --------------------------------------------------------
 
       const {
@@ -458,8 +447,7 @@
         .select(`
           id,
           name,
-          stock_quantity,
-          reorder_level
+          stock_quantity
         `)
         .eq('is_active', true);
 
@@ -539,7 +527,7 @@
 
 
       // ========================================================
-      // CALCULATE REVENUE
+      // REVENUE
       // ========================================================
 
       const todayRevenue =
@@ -565,10 +553,10 @@
 
 
       // ========================================================
-      // CALCULATE LOW STOCK
+      // LOW STOCK
       //
-      // IMPORTANT:
-      // If reorder_level is NULL, default = 5.
+      // EXACT RULE:
+      // stock_quantity <= 5
       // ========================================================
 
       const lowStockProducts =
@@ -582,7 +570,7 @@
 
 
       // ========================================================
-      // CALCULATE GROSS PROFIT
+      // GROSS PROFIT
       // ========================================================
 
       const todayProfit =
@@ -619,7 +607,7 @@
 
 
       // ========================================================
-      // CALCULATE LOSSES
+      // LOSSES
       // ========================================================
 
       const todayLossValue =
@@ -843,6 +831,12 @@
 
     async function loadLowStock() {
 
+      const element =
+        document.getElementById(
+          'low-stock-list'
+        );
+
+
       const {
         data,
         error
@@ -851,19 +845,12 @@
         .select(`
           id,
           name,
-          stock_quantity,
-          reorder_level
+          stock_quantity
         `)
         .eq('is_active', true)
         .order('stock_quantity', {
           ascending: true
         });
-
-
-      const element =
-        document.getElementById(
-          'low-stock-list'
-        );
 
 
       if (error) {
@@ -880,6 +867,11 @@
 
       }
 
+
+      // ========================================================
+      // EXACT LOW STOCK RULE
+      // stock <= 5
+      // ========================================================
 
       const lowStock =
         (data || []).filter(
@@ -902,12 +894,8 @@
 
           const stock =
             Number(
-              product.stock_quantity || 0
+              product.stock_quantity ?? 0
             );
-
-
-          const reorderLevel =
-            getReorderLevel(product);
 
 
           let badgeText;
@@ -933,7 +921,7 @@
                 justify-content:space-between;
                 align-items:center;
                 gap:10px;
-                padding:8px 0;
+                padding:10px 0;
                 border-bottom:1px solid var(--border);
                 font-size:0.88rem;
               "
@@ -955,7 +943,7 @@
                     color:var(--muted);
                   "
                 >
-                  Reorder level: ${reorderLevel}
+                  Low stock threshold: ${LOW_STOCK_THRESHOLD}
                 </div>
 
               </div>
