@@ -35,8 +35,10 @@
               <option value="Clothes & Shoes">Clothes &amp; Shoes</option>
             </select>
           </div>
-          <div class="field"><label>Type</label><input id="np-type" placeholder="e.g. Cookware, Dresses, Sneakers"></div>
-          <div class="field"><label>Name</label><input id="np-name" placeholder="e.g. Non-stick Frying Pan 28cm"></div>
+          <div class="field"><label>Type</label><input id="np-type" list="type-options" placeholder="e.g. Cookware, Dresses, Sneakers"></div>
+          <div class="field"><label>Name</label><input id="np-name" list="name-options" placeholder="e.g. Non-stick Frying Pan 28cm"></div>
+          <datalist id="type-options"></datalist>
+          <datalist id="name-options"></datalist>
           <div class="field"><label>Stock Number (quantity)</label><input id="np-stock" type="number" min="0" placeholder="e.g. 10"></div>
           <div class="field"><label>Cost Price (Ksh)</label><input id="np-cost" type="number" placeholder="e.g. 1200"></div>
           <div class="field"><label>Selling Price (Ksh)</label><input id="np-price" type="number" placeholder="e.g. 1800"></div>
@@ -72,8 +74,8 @@
         <option value="Clothes & Shoes">Clothes &amp; Shoes</option>
       </select>
     </div>
-    <div class="field"><label>Name</label><input id="ep-name"></div>
-    <div class="field"><label>Type</label><input id="ep-type"></div>
+    <div class="field"><label>Name</label><input id="ep-name" list="name-options"></div>
+    <div class="field"><label>Type</label><input id="ep-type" list="type-options"></div>
     <div class="field"><label>Stock Number (quantity)</label><input id="ep-stock" type="number" min="0"></div>
     <div class="field"><label>Cost Price (Ksh)</label><input id="ep-cost" type="number"></div>
     <div class="field"><label>Selling Price (Ksh)</label><input id="ep-price" type="number"></div>
@@ -241,6 +243,7 @@ function renderNav() {
           allProducts = cached.data;
           showOfflineBanner(cached.cachedAt);
           renderProducts(allProducts);
+          populateAutocompleteLists();
         }
         return;
       }
@@ -255,6 +258,7 @@ function renderNav() {
           allProducts = cached.data;
           showOfflineBanner(cached.cachedAt);
           renderProducts(allProducts);
+          populateAutocompleteLists();
         }
         return;
       }
@@ -262,6 +266,7 @@ function renderNav() {
       allProducts = data;
       cacheSet('products_list_full', data);
       renderProducts(allProducts);
+      populateAutocompleteLists();
     }
 
     function renderProducts(products) {
@@ -467,6 +472,19 @@ function renderNav() {
       const div = document.createElement('div');
       div.textContent = str ?? '';
       return div.innerHTML;
+    }
+
+    function escapeAttr(str) { return (str ?? '').replace(/"/g, '&quot;'); }
+
+    function populateAutocompleteLists() {
+      const fill = (listId, values) => {
+        const el = document.getElementById(listId);
+        if (!el) return;
+        const unique = [...new Set(values.filter(Boolean).map(v => v.trim()).filter(Boolean))].sort();
+        el.innerHTML = unique.map(v => `<option value="${escapeAttr(v)}">`).join('');
+      };
+      fill('name-options', allProducts.map(p => p.name));
+      fill('type-options', allProducts.map(p => p.category));
     }
   </script>
 </body>
