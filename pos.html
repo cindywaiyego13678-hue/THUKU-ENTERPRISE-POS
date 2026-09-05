@@ -11,6 +11,19 @@
   <meta name="theme-color" content="#0f2137">
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    #product-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 10px;
+      align-content: start;
+    }
+    #product-list .card {
+      margin-bottom: 0;
+      height: 100%;
+    }
+  </style>
 </head>
 
 <body>
