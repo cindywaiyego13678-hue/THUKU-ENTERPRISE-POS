@@ -3,8 +3,14 @@
 // instantly with ZERO internet after the first visit.
 // Supabase API calls always go to the network (can't meaningfully
 // cache live data), but the app itself will open offline.
+//
+// HTML pages use NETWORK-FIRST: when you have internet, you always
+// get the latest deployed version (so updates like new form fields
+// show up immediately) — it only falls back to the cached copy when
+// there's genuinely no connection. Static assets (CSS/JS/icons) stay
+// CACHE-FIRST for instant loading, since those change less often.
 // ============================================================
-const CACHE_NAME = 'thuku-enterprise-shell-v4';
+const CACHE_NAME = 'thuku-enterprise-shell-v5';
 
 const APP_SHELL = [
   './',
@@ -40,6 +46,11 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+function isHtmlRequest(request) {
+  return request.mode === 'navigate' ||
+    (request.headers.get('accept') || '').includes('text/html');
+}
+
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
@@ -49,7 +60,22 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // App shell: cache-first, so it opens instantly even offline.
+  // HTML pages: network-first, so a fresh deploy is picked up on the
+  // very next load while you're online. Falls back to the cached
+  // copy only if the network request fails (offline).
+  if (isHtmlRequest(event.request)) {
+    event.respondWith(
+      fetch(event.request).then((response) => {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        return response;
+      }).catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // Everything else (CSS/JS/icons): cache-first, so it opens instantly
+  // even offline.
   event.respondWith(
     caches.match(event.request).then((cached) => {
       if (cached) return cached;
