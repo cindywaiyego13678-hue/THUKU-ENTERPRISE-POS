@@ -146,7 +146,7 @@ function renderReport(sales, deptFilter, dateInput) {
   document.getElementById('total-markup').textContent = `KSh ${Math.round(totalMarkup).toLocaleString()}`;
   document.getElementById('total-profit').textContent = `KSh ${Math.round(grossProfit).toLocaleString()}`;
 
-  renderProductSummary(byProduct, itemsSold, revenue, dateInput);
+  renderProductSummary(byProduct, itemsSold, revenue, dateInput, totalDiscounts, totalMarkup);
 
   const tbody = document.getElementById('sales-table');
   const visibleSales = deptFilter
@@ -181,7 +181,9 @@ function renderReport(sales, deptFilter, dateInput) {
 
 // Ledger-style per-product breakdown: "qty x sell → revenue" and
 // "qty x cost → cost" side by side, matching the handwritten summary format.
-function renderProductSummary(byProduct, itemsSold, revenue, dateInput) {
+// Now also folds in discount/markup adjustments so the ledger's bottom-line
+// profit matches the "Gross Profit" stat card exactly.
+function renderProductSummary(byProduct, itemsSold, revenue, dateInput, totalDiscounts = 0, totalMarkup = 0) {
   const el = document.getElementById('product-summary');
   const products = Object.values(byProduct);
 
@@ -192,7 +194,24 @@ function renderProductSummary(byProduct, itemsSold, revenue, dateInput) {
 
   const totalCost = products.reduce((sum, d) => sum + d.cost, 0);
   const totalRevenue = products.reduce((sum, d) => sum + d.revenue, 0);
-  const profit = totalRevenue - totalCost;
+  // Adjusted for discount given and markup added, so this matches
+  // grossProfit shown in the stat cards above.
+  const profit = totalRevenue - totalCost - totalDiscounts + totalMarkup;
+
+  const adjustRows = `
+    ${totalDiscounts > 0 ? `
+      <div class="ledger-adjust-row">
+        <span class="ledger-label">Discount</span>
+        <span class="ledger-calc">− ${Math.round(totalDiscounts).toLocaleString()}</span>
+        <span></span>
+      </div>` : ''}
+    ${totalMarkup > 0 ? `
+      <div class="ledger-adjust-row">
+        <span class="ledger-label">Markup</span>
+        <span class="ledger-calc">+ ${Math.round(totalMarkup).toLocaleString()}</span>
+        <span></span>
+      </div>` : ''}
+  `;
 
   el.innerHTML = `
     <div class="ledger-summary">
@@ -214,6 +233,7 @@ function renderProductSummary(byProduct, itemsSold, revenue, dateInput) {
         <span class="ledger-totals-num">${Math.round(totalRevenue).toLocaleString()}</span>
         <span class="ledger-totals-num">${Math.round(totalCost).toLocaleString()}</span>
       </div>
+      ${adjustRows}
       <div class="ledger-profit-row">
         <span></span>
         <span class="ledger-profit-num" style="color:${profit >= 0 ? '#1a7f37' : '#c0392b'};">${Math.round(profit).toLocaleString()}</span>
