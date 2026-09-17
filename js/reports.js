@@ -85,8 +85,11 @@ function renderReport(sales, deptFilter, dateInput) {
   let totalMarkup = 0;
   let itemLevelProfit = 0;
 
-  // Per-product ledger-style breakdown — grouped by product_id, using the
-  // department-filtered item set so it stays consistent with the stat cards.
+  // Per-product ledger-style breakdown — grouped by product NAME (trimmed,
+  // case-insensitive), using the department-filtered item set so it stays
+  // consistent with the stat cards. Grouping by name (rather than
+  // product_id) means the same size/type entered under different product
+  // records still merges into a single ledger line.
   const byProduct = {};
 
   completedSales.forEach(s => {
@@ -114,12 +117,15 @@ function renderReport(sales, deptFilter, dateInput) {
     }, 0);
 
     relevantItems.forEach(i => {
-      const key = i.product_id || 'unknown';
+      // Group by product name (trimmed, case-insensitive) so the same
+      // size/type entered under different product IDs merges into one line.
+      const name = i.products?.name || 'Unknown product';
+      const key = name.trim().toLowerCase();
       const qty = Number(i.quantity || 1);
       const unitPrice = Number(i.unit_price || 0);
       const unitCost = Number(i.products?.cost || 0);
       if (!byProduct[key]) {
-        byProduct[key] = { name: i.products?.name || 'Unknown product', qty: 0, revenue: 0, cost: 0 };
+        byProduct[key] = { name: name.trim(), qty: 0, revenue: 0, cost: 0 };
       }
       byProduct[key].qty += qty;
       byProduct[key].revenue += qty * unitPrice;
