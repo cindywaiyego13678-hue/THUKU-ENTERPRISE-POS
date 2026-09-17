@@ -167,7 +167,7 @@ function renderReport(sales, deptFilter, dateInput) {
     : sales;
 
   if (!visibleSales.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:20px;">No sales for this date.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--muted); padding:20px;">No sales for this date.</td></tr>';
     return;
   }
 
@@ -176,10 +176,22 @@ function renderReport(sales, deptFilter, dateInput) {
     const cashier = s.staff?.full_name || '—';
     const time = new Date(s.created_at).toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' });
     const isRefunded = s.status === 'refunded';
+
+    // When a department filter is active, only list the items from that
+    // department so the Products column stays consistent with the rest of
+    // the filtered report.
+    const itemsForRow = deptFilter
+      ? (s.sale_items || []).filter(i => i.products?.department === deptFilter)
+      : (s.sale_items || []);
+    const productsLabel = itemsForRow.length
+      ? itemsForRow.map(i => `${i.products?.name || 'Unknown'} x${i.quantity || 1}`).join(', ')
+      : '—';
+
     return `
       <tr style="${isRefunded ? 'opacity:0.6;' : ''}">
         <td>${escapeHtmlReports(receipt)}</td>
         <td>${escapeHtmlReports(cashier)}</td>
+        <td>${escapeHtmlReports(productsLabel)}</td>
         <td>KSh ${Number(s.total_amount).toLocaleString()}</td>
         <td>${escapeHtmlReports(s.payment_method)}</td>
         <td>${time}</td>
