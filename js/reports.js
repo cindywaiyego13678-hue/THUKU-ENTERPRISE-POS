@@ -99,6 +99,9 @@ function renderReport(sales, deptFilter, dateInput) {
 
     transactions += 1;
 
+    // saleSubtotal is the sale's FULL subtotal (every item, not just the
+    // department-relevant ones) — it's the base we prorate discount/markup
+    // against, since those were applied to the whole sale.
     const saleSubtotal = items.reduce((sum, i) => sum + Number(i.unit_price) * (i.quantity || 1), 0);
     const relevantSubtotal = relevantItems.reduce((sum, i) => sum + Number(i.unit_price) * (i.quantity || 1), 0);
     const share = saleSubtotal > 0 ? relevantSubtotal / saleSubtotal : 0;
@@ -124,12 +127,22 @@ function renderReport(sales, deptFilter, dateInput) {
       const qty = Number(i.quantity || 1);
       const unitPrice = Number(i.unit_price || 0);
       const unitCost = Number(i.products?.cost || 0);
+      const itemRevenue = qty * unitPrice;
+
+      // Prorate this sale's discount/markup onto this specific line item by
+      // its share of the sale's full subtotal, so each product only carries
+      // the portion of the adjustment that actually applied to it.
+      const itemDiscount = saleSubtotal > 0 ? Number(s.discount_amount || 0) * (itemRevenue / saleSubtotal) : 0;
+      const itemMarkup = saleSubtotal > 0 ? Number(s.markup_amount || 0) * (itemRevenue / saleSubtotal) : 0;
+
       if (!byProduct[key]) {
-        byProduct[key] = { name: name.trim(), qty: 0, revenue: 0, cost: 0 };
+        byProduct[key] = { name: name.trim(), qty: 0, revenue: 0, cost: 0, discount: 0, markup: 0 };
       }
       byProduct[key].qty += qty;
-      byProduct[key].revenue += qty * unitPrice;
+      byProduct[key].revenue += itemRevenue;
       byProduct[key].cost += qty * unitCost;
+      byProduct[key].discount += itemDiscount;
+      byProduct[key].markup += itemMarkup;
     });
   });
 
@@ -181,8 +194,9 @@ function renderReport(sales, deptFilter, dateInput) {
 
 // Ledger-style per-product breakdown: "qty x sell → revenue" and
 // "qty x cost → cost" side by side, matching the handwritten summary format.
-// Now also folds in discount/markup adjustments so the ledger's bottom-line
-// profit matches the "Gross Profit" stat card exactly.
+// Any discount/markup that applied to a specific product's sale is prorated
+// onto that product's line (see renderReport) and shown inline next to it,
+// rather than as one lump total at the bottom.
 function renderProductSummary(byProduct, itemsSold, revenue, dateInput, totalDiscounts = 0, totalMarkup = 0) {
   const el = document.getElementById('product-summary');
   const products = Object.values(byProduct);
@@ -198,21 +212,6 @@ function renderProductSummary(byProduct, itemsSold, revenue, dateInput, totalDis
   // grossProfit shown in the stat cards above.
   const profit = totalRevenue - totalCost - totalDiscounts + totalMarkup;
 
-  const adjustRows = `
-    ${totalDiscounts > 0 ? `
-      <div class="ledger-adjust-row">
-        <span class="ledger-label">Discount</span>
-        <span class="ledger-calc">− ${Math.round(totalDiscounts).toLocaleString()}</span>
-        <span></span>
-      </div>` : ''}
-    ${totalMarkup > 0 ? `
-      <div class="ledger-adjust-row">
-        <span class="ledger-label">Markup</span>
-        <span class="ledger-calc">+ ${Math.round(totalMarkup).toLocaleString()}</span>
-        <span></span>
-      </div>` : ''}
-  `;
-
   el.innerHTML = `
     <div class="ledger-summary">
       <div class="ledger-title">Summary ${formatLedgerDate(dateInput)}</div>
@@ -221,10 +220,13 @@ function renderProductSummary(byProduct, itemsSold, revenue, dateInput, totalDis
         // line shows the average for readability, totals stay exact.
         const sellUnit = d.qty ? Math.round(d.revenue / d.qty) : 0;
         const costUnit = d.qty ? Math.round(d.cost / d.qty) : 0;
+        // Only note discount/markup on lines where it actually applied.
+        const discNote = d.discount > 0.5 ? ` <span class="ledger-note ledger-note-disc">(− ${Math.round(d.discount).toLocaleString()} disc)</span>` : '';
+        const markupNote = d.markup > 0.5 ? ` <span class="ledger-note ledger-note-mkup">(+ ${Math.round(d.markup).toLocaleString()} mkup)</span>` : '';
         return `
           <div class="ledger-line">
             <span class="ledger-label">- ${escapeHtmlReports(d.name)}</span>
-            <span class="ledger-calc">${d.qty} x ${sellUnit.toLocaleString()}<span class="arrow">→</span>${Math.round(d.revenue).toLocaleString()}</span>
+            <span class="ledger-calc">${d.qty} x ${sellUnit.toLocaleString()}<span class="arrow">→</span>${Math.round(d.revenue).toLocaleString()}${discNote}${markupNote}</span>
             <span class="ledger-calc">${d.qty} x ${costUnit.toLocaleString()}<span class="arrow">→</span>${Math.round(d.cost).toLocaleString()}</span>
           </div>`;
       }).join('')}
@@ -233,7 +235,6 @@ function renderProductSummary(byProduct, itemsSold, revenue, dateInput, totalDis
         <span class="ledger-totals-num">${Math.round(totalRevenue).toLocaleString()}</span>
         <span class="ledger-totals-num">${Math.round(totalCost).toLocaleString()}</span>
       </div>
-      ${adjustRows}
       <div class="ledger-profit-row">
         <span></span>
         <span class="ledger-profit-num" style="color:${profit >= 0 ? '#1a7f37' : '#c0392b'};">${Math.round(profit).toLocaleString()}</span>
