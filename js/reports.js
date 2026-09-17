@@ -30,6 +30,12 @@ function renderReportsNav(role) {
   ).join('');
 }
 
+// "YYYY-MM-DD" -> "D/M/YYYY", matching the ledger's handwritten date style
+function formatLedgerDate(isoDay) {
+  const [y, m, d] = isoDay.split('-');
+  return `${parseInt(d, 10)}/${parseInt(m, 10)}/${y}`;
+}
+
 async function loadDailyReport() {
   const dateInput = document.getElementById('report-date').value;
   if (!dateInput) { alert('Please select a date.'); return; }
@@ -42,7 +48,7 @@ async function loadDailyReport() {
 
   const { data: sales, error } = await supabaseClient
     .from('sales')
-    .select('*, staff(full_name), sale_items(product_id, quantity, unit_price, products(cost, department))')
+    .select('*, staff(full_name), sale_items(product_id, quantity, unit_price, products(name, cost, department))')
     .in('status', ['completed', 'refunded'])
     .gte('created_at', dayStart.toISOString())
     .lte('created_at', dayEnd.toISOString())
@@ -65,11 +71,11 @@ async function loadDailyReport() {
   const { data: losses, error: lossError } = await lossQuery;
   if (lossError) console.error(lossError);
 
-  renderReport(sales || [], deptFilter);
+  renderReport(sales || [], deptFilter, dateInput);
   renderLosses(losses || []);
 }
 
-function renderReport(sales, deptFilter) {
+function renderReport(sales, deptFilter, dateInput) {
   const completedSales = sales.filter(s => s.status === 'completed');
 
   let transactions = 0;
@@ -78,6 +84,10 @@ function renderReport(sales, deptFilter) {
   let totalDiscounts = 0;
   let totalMarkup = 0;
   let itemLevelProfit = 0;
+
+  // Per-product ledger-style breakdown — grouped by product_id, using the
+  // department-filtered item set so it stays consistent with the stat cards.
+  const byProduct = {};
 
   completedSales.forEach(s => {
     const items = s.sale_items || [];
@@ -102,6 +112,19 @@ function renderReport(sales, deptFilter) {
       const cost = Number(i.products?.cost || 0);
       return sum + (Number(i.unit_price) - cost) * (i.quantity || 1);
     }, 0);
+
+    relevantItems.forEach(i => {
+      const key = i.product_id || 'unknown';
+      const qty = Number(i.quantity || 1);
+      const unitPrice = Number(i.unit_price || 0);
+      const unitCost = Number(i.products?.cost || 0);
+      if (!byProduct[key]) {
+        byProduct[key] = { name: i.products?.name || 'Unknown product', qty: 0, revenue: 0, cost: 0 };
+      }
+      byProduct[key].qty += qty;
+      byProduct[key].revenue += qty * unitPrice;
+      byProduct[key].cost += qty * unitCost;
+    });
   });
 
   const averageSale = transactions > 0 ? revenue / transactions : 0;
@@ -116,6 +139,8 @@ function renderReport(sales, deptFilter) {
   document.getElementById('total-discounts').textContent = `KSh ${Math.round(totalDiscounts).toLocaleString()}`;
   document.getElementById('total-markup').textContent = `KSh ${Math.round(totalMarkup).toLocaleString()}`;
   document.getElementById('total-profit').textContent = `KSh ${Math.round(grossProfit).toLocaleString()}`;
+
+  renderProductSummary(byProduct, itemsSold, revenue, dateInput);
 
   const tbody = document.getElementById('sales-table');
   const visibleSales = deptFilter
@@ -146,6 +171,50 @@ function renderReport(sales, deptFilter) {
         </td>
       </tr>`;
   }).join('');
+}
+
+// Ledger-style per-product breakdown: "qty x sell → revenue" and
+// "qty x cost → cost" side by side, matching the handwritten summary format.
+function renderProductSummary(byProduct, itemsSold, revenue, dateInput) {
+  const el = document.getElementById('product-summary');
+  const products = Object.values(byProduct);
+
+  if (!products.length) {
+    el.innerHTML = '<div class="empty-state">No sales for this date.</div>';
+    return;
+  }
+
+  const totalCost = products.reduce((sum, d) => sum + d.cost, 0);
+  const totalRevenue = products.reduce((sum, d) => sum + d.revenue, 0);
+  const profit = totalRevenue - totalCost;
+
+  el.innerHTML = `
+    <div class="ledger-summary">
+      <div class="ledger-title">Summary ${formatLedgerDate(dateInput)}</div>
+      ${products.map(d => {
+        // Unit prices can vary sale-to-sale (discounts, price changes); the
+        // line shows the average for readability, totals stay exact.
+        const sellUnit = d.qty ? Math.round(d.revenue / d.qty) : 0;
+        const costUnit = d.qty ? Math.round(d.cost / d.qty) : 0;
+        return `
+          <div class="ledger-line">
+            <span class="ledger-label">- ${escapeHtmlReports(d.name)}</span>
+            <span class="ledger-calc">${d.qty} x ${sellUnit.toLocaleString()}<span class="arrow">→</span>${Math.round(d.revenue).toLocaleString()}</span>
+            <span class="ledger-calc">${d.qty} x ${costUnit.toLocaleString()}<span class="arrow">→</span>${Math.round(d.cost).toLocaleString()}</span>
+          </div>`;
+      }).join('')}
+      <div class="ledger-totals">
+        <span class="ledger-qty-total">${itemsSold} total</span>
+        <span class="ledger-totals-num">${Math.round(totalRevenue).toLocaleString()}</span>
+        <span class="ledger-totals-num">${Math.round(totalCost).toLocaleString()}</span>
+      </div>
+      <div class="ledger-profit-row">
+        <span></span>
+        <span class="ledger-profit-num" style="color:${profit >= 0 ? '#1a7f37' : '#c0392b'};">${Math.round(profit).toLocaleString()}</span>
+        <span></span>
+      </div>
+    </div>
+  `;
 }
 
 function renderLosses(losses) {
