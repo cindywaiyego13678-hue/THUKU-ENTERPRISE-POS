@@ -6,6 +6,53 @@
 <title>Reports — Thuku Enterprise</title>
 <link rel="stylesheet" href="css/style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  .ledger-summary {
+    font-family: 'Courier New', Consolas, monospace;
+    font-size: 0.85rem;
+    line-height: 1.55;
+    border: 1px solid var(--border, #33455c);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+  }
+  .ledger-title {
+    font-weight: 700;
+    margin-bottom: 8px;
+    text-decoration: underline;
+  }
+  .ledger-line {
+    display: grid;
+    grid-template-columns: minmax(170px, 1.3fr) 1fr 1fr;
+    gap: 14px;
+    white-space: nowrap;
+  }
+  .ledger-label { white-space: normal; }
+  .ledger-calc { text-align: left; }
+  .ledger-calc .arrow { margin: 0 4px; color: var(--muted, #8ea0b6); }
+  .ledger-totals {
+    display: grid;
+    grid-template-columns: minmax(170px, 1.3fr) 1fr 1fr;
+    gap: 14px;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border, #33455c);
+  }
+  .ledger-totals .ledger-qty-total { font-weight: 700; }
+  .ledger-totals-num {
+    font-weight: 700;
+    border-bottom: 2px solid currentColor;
+    display: inline-block;
+    padding-bottom: 2px;
+  }
+  .ledger-profit-row {
+    display: grid;
+    grid-template-columns: minmax(170px, 1.3fr) 1fr 1fr;
+    gap: 14px;
+    margin-top: 4px;
+  }
+  .ledger-profit-row .ledger-profit-num { font-weight: 800; }
+</style>
 </head>
 <body>
 <div class="topbar">
@@ -75,6 +122,10 @@ KSh 0
 <div class="label">Losses</div>
 <div class="value alert" id="total-losses">KSh 0</div>
 </div>
+</div>
+<div class="card">
+<h2>Product Summary</h2>
+<div id="product-summary"></div>
 </div>
 <div class="card">
 <h2>Sales List</h2>
