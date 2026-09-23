@@ -1,7 +1,8 @@
 // ============================================================
-// Reports page logic — daily sales report generation
+// Reports page logic — daily/weekly/monthly sales report generation
 // ============================================================
 let currentStaffReports = null;
+let currentPeriod = 'daily'; // 'daily' | 'weekly' | 'monthly'
 
 (async () => {
   currentStaffReports = await requireAuth(['admin','owner']);
@@ -16,7 +17,8 @@ let currentStaffReports = null;
   const dd = String(today.getDate()).padStart(2, '0');
   document.getElementById('report-date').value = `${yyyy}-${mm}-${dd}`;
 
-  await loadDailyReport();
+  updateRangeLabel();
+  await loadReport();
 })();
 
 function renderReportsNav(role) {
@@ -36,22 +38,83 @@ function formatLedgerDate(isoDay) {
   return `${parseInt(d, 10)}/${parseInt(m, 10)}/${y}`;
 }
 
-async function loadDailyReport() {
+function formatLedgerDateObj(date) {
+  return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
+}
+
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+// ─── PERIOD SELECTION ──────────────────────────────────────────
+function setPeriod(period, btnEl) {
+  currentPeriod = period;
+  document.querySelectorAll('#period-tabs button').forEach(b => b.classList.remove('active'));
+  if (btnEl) btnEl.classList.add('active');
+
+  const dateLabel = document.getElementById('report-date-label');
+  if (period === 'daily') dateLabel.textContent = 'Select Report Date';
+  if (period === 'weekly') dateLabel.textContent = 'Any date in the week';
+  if (period === 'monthly') dateLabel.textContent = 'Any date in the month';
+
+  updateRangeLabel();
+}
+
+// Given the selected period + the date picker's value, compute the actual
+// [start, end] Date range to query, plus a human label for the ledger title.
+function getPeriodRange() {
+  const dateInput = document.getElementById('report-date').value;
+  const base = new Date(dateInput + 'T00:00:00');
+
+  if (currentPeriod === 'weekly') {
+    const day = base.getDay(); // 0 = Sunday
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+    const monday = new Date(base);
+    monday.setDate(base.getDate() + diffToMonday);
+    monday.setHours(0, 0, 0, 0);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    sunday.setHours(23, 59, 59, 999);
+    return { start: monday, end: sunday, label: `${formatLedgerDateObj(monday)} – ${formatLedgerDateObj(sunday)}` };
+  }
+
+  if (currentPeriod === 'monthly') {
+    const first = new Date(base.getFullYear(), base.getMonth(), 1, 0, 0, 0, 0);
+    const last = new Date(base.getFullYear(), base.getMonth() + 1, 0, 23, 59, 59, 999);
+    return { start: first, end: last, label: `${MONTH_NAMES[base.getMonth()]} ${base.getFullYear()}` };
+  }
+
+  // daily
+  const start = new Date(dateInput + 'T00:00:00');
+  const end = new Date(dateInput + 'T23:59:59.999');
+  return { start, end, label: formatLedgerDate(dateInput) };
+}
+
+function updateRangeLabel() {
+  const dateInput = document.getElementById('report-date').value;
+  if (!dateInput) return;
+  const { label } = getPeriodRange();
+  const el = document.getElementById('range-label');
+  el.textContent = currentPeriod === 'daily' ? '' : `Range: ${label}`;
+}
+
+document.getElementById('report-date').addEventListener('change', updateRangeLabel);
+
+// ─── LOAD REPORT (daily / weekly / monthly — same engine) ──────
+async function loadReport() {
   const dateInput = document.getElementById('report-date').value;
   if (!dateInput) { alert('Please select a date.'); return; }
   const deptFilter = document.getElementById('report-department').value;
 
   document.getElementById('dept-filter-note').style.display = deptFilter ? 'block' : 'none';
+  updateRangeLabel();
 
-  const dayStart = new Date(dateInput + 'T00:00:00');
-  const dayEnd = new Date(dateInput + 'T23:59:59.999');
+  const { start: rangeStart, end: rangeEnd, label: rangeLabel } = getPeriodRange();
 
   const { data: sales, error } = await supabaseClient
     .from('sales')
     .select('*, staff(full_name), sale_items(product_id, quantity, unit_price, products(name, cost, department))')
     .in('status', ['completed', 'refunded'])
-    .gte('created_at', dayStart.toISOString())
-    .lte('created_at', dayEnd.toISOString())
+    .gte('created_at', rangeStart.toISOString())
+    .lte('created_at', rangeEnd.toISOString())
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -63,19 +126,24 @@ async function loadDailyReport() {
   let lossQuery = supabaseClient
     .from('stock_losses')
     .select('*')
-    .gte('created_at', dayStart.toISOString())
-    .lte('created_at', dayEnd.toISOString())
+    .gte('created_at', rangeStart.toISOString())
+    .lte('created_at', rangeEnd.toISOString())
     .order('created_at', { ascending: false });
   if (deptFilter) lossQuery = lossQuery.eq('department', deptFilter);
 
   const { data: losses, error: lossError } = await lossQuery;
   if (lossError) console.error(lossError);
 
-  renderReport(sales || [], deptFilter, dateInput);
+  renderReport(sales || [], deptFilter, rangeLabel);
   renderLosses(losses || []);
 }
 
-function renderReport(sales, deptFilter, dateInput) {
+// Kept for backward compatibility with any old bookmarks/onclick handlers.
+async function loadDailyReport() {
+  return loadReport();
+}
+
+function renderReport(sales, deptFilter, rangeLabel) {
   const completedSales = sales.filter(s => s.status === 'completed');
 
   let transactions = 0;
@@ -85,11 +153,9 @@ function renderReport(sales, deptFilter, dateInput) {
   let totalMarkup = 0;
   let itemLevelProfit = 0;
 
-  // Per-product ledger-style breakdown — grouped by product NAME (trimmed,
-  // case-insensitive), using the department-filtered item set so it stays
-  // consistent with the stat cards. Grouping by name (rather than
-  // product_id) means the same size/type entered under different product
-  // records still merges into a single ledger line.
+  // Per-product ledger-style breakdown — grouped by product_id, using the
+  // department-filtered item set so it stays consistent with the stat cards.
+  // Works the same way whether the range is a day, a week, or a month.
   const byProduct = {};
 
   completedSales.forEach(s => {
@@ -99,9 +165,6 @@ function renderReport(sales, deptFilter, dateInput) {
 
     transactions += 1;
 
-    // saleSubtotal is the sale's FULL subtotal (every item, not just the
-    // department-relevant ones) — it's the base we prorate discount/markup
-    // against, since those were applied to the whole sale.
     const saleSubtotal = items.reduce((sum, i) => sum + Number(i.unit_price) * (i.quantity || 1), 0);
     const relevantSubtotal = relevantItems.reduce((sum, i) => sum + Number(i.unit_price) * (i.quantity || 1), 0);
     const share = saleSubtotal > 0 ? relevantSubtotal / saleSubtotal : 0;
@@ -120,29 +183,16 @@ function renderReport(sales, deptFilter, dateInput) {
     }, 0);
 
     relevantItems.forEach(i => {
-      // Group by product name (trimmed, case-insensitive) so the same
-      // size/type entered under different product IDs merges into one line.
-      const name = i.products?.name || 'Unknown product';
-      const key = name.trim().toLowerCase();
+      const key = i.product_id || 'unknown';
       const qty = Number(i.quantity || 1);
       const unitPrice = Number(i.unit_price || 0);
       const unitCost = Number(i.products?.cost || 0);
-      const itemRevenue = qty * unitPrice;
-
-      // Prorate this sale's discount/markup onto this specific line item by
-      // its share of the sale's full subtotal, so each product only carries
-      // the portion of the adjustment that actually applied to it.
-      const itemDiscount = saleSubtotal > 0 ? Number(s.discount_amount || 0) * (itemRevenue / saleSubtotal) : 0;
-      const itemMarkup = saleSubtotal > 0 ? Number(s.markup_amount || 0) * (itemRevenue / saleSubtotal) : 0;
-
       if (!byProduct[key]) {
-        byProduct[key] = { name: name.trim(), qty: 0, revenue: 0, cost: 0, discount: 0, markup: 0 };
+        byProduct[key] = { name: i.products?.name || 'Unknown product', qty: 0, revenue: 0, cost: 0 };
       }
       byProduct[key].qty += qty;
-      byProduct[key].revenue += itemRevenue;
+      byProduct[key].revenue += qty * unitPrice;
       byProduct[key].cost += qty * unitCost;
-      byProduct[key].discount += itemDiscount;
-      byProduct[key].markup += itemMarkup;
     });
   });
 
@@ -159,7 +209,7 @@ function renderReport(sales, deptFilter, dateInput) {
   document.getElementById('total-markup').textContent = `KSh ${Math.round(totalMarkup).toLocaleString()}`;
   document.getElementById('total-profit').textContent = `KSh ${Math.round(grossProfit).toLocaleString()}`;
 
-  renderProductSummary(byProduct, itemsSold, revenue, dateInput, totalDiscounts, totalMarkup);
+  renderProductSummary(byProduct, itemsSold, revenue, rangeLabel);
 
   const tbody = document.getElementById('sales-table');
   const visibleSales = deptFilter
@@ -167,31 +217,22 @@ function renderReport(sales, deptFilter, dateInput) {
     : sales;
 
   if (!visibleSales.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--muted); padding:20px;">No sales for this date.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:20px;">No sales for this period.</td></tr>';
     return;
   }
 
   tbody.innerHTML = visibleSales.map(s => {
     const receipt = s.mpesa_receipt || (s.payment_method === 'cash' ? 'CASH' : '—');
     const cashier = s.staff?.full_name || '—';
-    const time = new Date(s.created_at).toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' });
+    // Weekly/monthly ranges span multiple days, so show the date too, not just the time.
+    const time = currentPeriod === 'daily'
+      ? new Date(s.created_at).toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' })
+      : new Date(s.created_at).toLocaleString('en-KE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
     const isRefunded = s.status === 'refunded';
-
-    // When a department filter is active, only list the items from that
-    // department so the Products column stays consistent with the rest of
-    // the filtered report.
-    const itemsForRow = deptFilter
-      ? (s.sale_items || []).filter(i => i.products?.department === deptFilter)
-      : (s.sale_items || []);
-    const productsLabel = itemsForRow.length
-      ? itemsForRow.map(i => `${i.products?.name || 'Unknown'} x${i.quantity || 1}`).join(', ')
-      : '—';
-
     return `
       <tr style="${isRefunded ? 'opacity:0.6;' : ''}">
         <td>${escapeHtmlReports(receipt)}</td>
         <td>${escapeHtmlReports(cashier)}</td>
-        <td>${escapeHtmlReports(productsLabel)}</td>
         <td>KSh ${Number(s.total_amount).toLocaleString()}</td>
         <td>${escapeHtmlReports(s.payment_method)}</td>
         <td>${time}</td>
@@ -206,39 +247,32 @@ function renderReport(sales, deptFilter, dateInput) {
 
 // Ledger-style per-product breakdown: "qty x sell → revenue" and
 // "qty x cost → cost" side by side, matching the handwritten summary format.
-// Any discount/markup that applied to a specific product's sale is prorated
-// onto that product's line (see renderReport) and shown inline next to it,
-// rather than as one lump total at the bottom.
-function renderProductSummary(byProduct, itemsSold, revenue, dateInput, totalDiscounts = 0, totalMarkup = 0) {
+// rangeLabel is either a single date (daily) or a range/month string.
+function renderProductSummary(byProduct, itemsSold, revenue, rangeLabel) {
   const el = document.getElementById('product-summary');
   const products = Object.values(byProduct);
 
   if (!products.length) {
-    el.innerHTML = '<div class="empty-state">No sales for this date.</div>';
+    el.innerHTML = '<div class="empty-state">No sales for this period.</div>';
     return;
   }
 
   const totalCost = products.reduce((sum, d) => sum + d.cost, 0);
   const totalRevenue = products.reduce((sum, d) => sum + d.revenue, 0);
-  // Adjusted for discount given and markup added, so this matches
-  // grossProfit shown in the stat cards above.
-  const profit = totalRevenue - totalCost - totalDiscounts + totalMarkup;
+  const profit = totalRevenue - totalCost;
 
   el.innerHTML = `
     <div class="ledger-summary">
-      <div class="ledger-title">Summary ${formatLedgerDate(dateInput)}</div>
+      <div class="ledger-title">Summary ${rangeLabel}</div>
       ${products.map(d => {
-        // Unit prices can vary sale-to-sale (discounts, price changes); the
-        // line shows the average for readability, totals stay exact.
+        // Unit prices can vary sale-to-sale (discounts, price changes over
+        // the period); the line shows the average, totals stay exact.
         const sellUnit = d.qty ? Math.round(d.revenue / d.qty) : 0;
         const costUnit = d.qty ? Math.round(d.cost / d.qty) : 0;
-        // Only note discount/markup on lines where it actually applied.
-        const discNote = d.discount > 0.5 ? ` <span class="ledger-note ledger-note-disc">(− ${Math.round(d.discount).toLocaleString()} disc)</span>` : '';
-        const markupNote = d.markup > 0.5 ? ` <span class="ledger-note ledger-note-mkup">(+ ${Math.round(d.markup).toLocaleString()} mkup)</span>` : '';
         return `
           <div class="ledger-line">
             <span class="ledger-label">- ${escapeHtmlReports(d.name)}</span>
-            <span class="ledger-calc">${d.qty} x ${sellUnit.toLocaleString()}<span class="arrow">→</span>${Math.round(d.revenue).toLocaleString()}${discNote}${markupNote}</span>
+            <span class="ledger-calc">${d.qty} x ${sellUnit.toLocaleString()}<span class="arrow">→</span>${Math.round(d.revenue).toLocaleString()}</span>
             <span class="ledger-calc">${d.qty} x ${costUnit.toLocaleString()}<span class="arrow">→</span>${Math.round(d.cost).toLocaleString()}</span>
           </div>`;
       }).join('')}
@@ -262,12 +296,14 @@ function renderLosses(losses) {
 
   const tbody = document.getElementById('losses-table');
   if (!losses.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:20px;">No losses recorded for this date.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:20px;">No losses recorded for this period.</td></tr>';
     return;
   }
 
   tbody.innerHTML = losses.map(l => {
-    const time = new Date(l.created_at).toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' });
+    const time = currentPeriod === 'daily'
+      ? new Date(l.created_at).toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' })
+      : new Date(l.created_at).toLocaleString('en-KE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
     return `
       <tr>
         <td>${escapeHtmlReports(l.product_name)}</td>
@@ -308,7 +344,7 @@ async function processRefund(saleId) {
   if (updateError) { alert('Error processing refund: ' + updateError.message); return; }
 
   alert('Refund processed and stock restored.');
-  await loadDailyReport();
+  await loadReport();
 }
 
 function escapeHtmlReports(str) {
