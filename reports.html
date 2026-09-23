@@ -52,6 +52,31 @@
     margin-top: 4px;
   }
   .ledger-profit-row .ledger-profit-num { font-weight: 800; }
+  .period-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .period-tabs button {
+    flex: 1;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border, #33455c);
+    background: transparent;
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+  .period-tabs button.active {
+    background: var(--accent, #0f2137);
+    color: #fff;
+    font-weight: 700;
+  }
+  .range-label {
+    font-size: 0.85rem;
+    color: var(--muted, #8ea0b6);
+    margin-top: -6px;
+    margin-bottom: 8px;
+  }
 </style>
 </head>
 <body>
@@ -66,9 +91,16 @@
 <div class="nav-tabs" id="nav-tabs"></div>
 <div class="card">
 <h2>Sales Reports</h2>
+
+<div class="period-tabs" id="period-tabs">
+  <button type="button" class="active" data-period="daily" onclick="setPeriod('daily', this)">Daily</button>
+  <button type="button" data-period="weekly" onclick="setPeriod('weekly', this)">Weekly</button>
+  <button type="button" data-period="monthly" onclick="setPeriod('monthly', this)">Monthly</button>
+</div>
+
 <div class="grid grid-2">
 <div class="field">
-<label>Select Report Date</label>
+<label id="report-date-label">Select Report Date</label>
 <input type="date" id="report-date">
 </div>
 <div class="field">
@@ -80,7 +112,8 @@
 </select>
 </div>
 </div>
-<button onclick="loadDailyReport()">
+<p class="range-label" id="range-label"></p>
+<button onclick="loadReport()">
 Generate Report
 </button>
 <p id="dept-filter-note" style="display:none; font-size:0.8rem; color:var(--muted); margin-top:8px;">Showing figures for this department only. Discounts, markup, and profit reflect this department's share of each sale.</p>
