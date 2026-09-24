@@ -10,7 +10,7 @@
 // there's genuinely no connection. Static assets (CSS/JS/icons) stay
 // CACHE-FIRST for instant loading, since those change less often.
 // ============================================================
-const CACHE_NAME = 'thuku-enterprise-shell-v5';
+const CACHE_NAME = 'thuku-enterprise-shell-v6';
 
 const APP_SHELL = [
   './',
@@ -25,6 +25,7 @@ const APP_SHELL = [
   'js/offline-sync.js',
   'js/offline-cache.js',
   'js/reports.js',
+  'js/scanner.js',
   'manifest.json',
   'icons/icon-192.png',
   'icons/icon-512.png'
