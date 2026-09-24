@@ -8,7 +8,7 @@
 //
 // Camera scanning uses the browser's built-in BarcodeDetector when
 // available (Chrome on Android — works offline). Otherwise it lazy-loads
-// the bundled ZXing library (js/vendor/zxing.min.js) — e.g. iPhone Safari.
+// the bundled ZXing library (js/zxing.min.js) — e.g. iPhone Safari.
 // Camera access needs HTTPS (GitHub Pages / Netlify are fine).
 // ============================================================
 const Scanner = (() => {
@@ -100,7 +100,7 @@ const Scanner = (() => {
     if (window.ZXing) return Promise.resolve();
     return new Promise((resolve, reject) => {
       const s = document.createElement('script');
-      s.src = 'js/vendor/zxing.min.js';
+      s.src = 'js/zxing.min.js';
       s.onload = resolve;
       s.onerror = () => reject(new Error('Could not load the scanner library. Connect to the internet once so it can be saved for offline use.'));
       document.head.appendChild(s);
