@@ -140,12 +140,22 @@
             Search product
           </label>
 
-          <input
-            type="text"
-            id="product-search"
-            placeholder="Type name or type..."
-            autocomplete="off"
-          >
+          <div style="display:flex; gap:8px;">
+            <input
+              type="text"
+              id="product-search"
+              placeholder="Type name, or scan a barcode..."
+              autocomplete="off"
+              style="flex:1; min-width:0;"
+            >
+            <button
+              type="button"
+              id="scan-btn"
+              onclick="openCameraScanner()"
+              title="Scan with camera"
+              style="white-space:nowrap;"
+            >📷 Scan</button>
+          </div>
         </div>
 
 
@@ -495,6 +505,7 @@
   <script src="js/offline-cache.js"></script>
   <script src="js/supabase-config.js"></script>
   <script src="js/offline-sync.js"></script>
+  <script src="js/scanner.js"></script>
 
 
   <script>
@@ -589,10 +600,16 @@
               .toLowerCase();
 
 
+          const barcode =
+            String(product.barcode || '')
+              .toLowerCase();
+
+
           const matchesSearch =
             !q ||
             productName.includes(q) ||
-            category.includes(q);
+            category.includes(q) ||
+            barcode.includes(q);
 
 
           return matchesDept && matchesSearch;
@@ -1208,6 +1225,83 @@
         'input',
         applyProductFilters
       );
+
+
+    /* ============================================================
+       BARCODE SCANNING
+       - USB / Bluetooth scanners: just scan (works when the page
+         or the search box has focus)
+       - Phone camera: "📷 Scan" button (stays open for several items)
+    ============================================================ */
+
+    function cartQtyTotal() {
+      return cart.reduce(
+        (sum, item) => sum + safeNumber(item.quantity), 0
+      );
+    }
+
+
+    function handleScannedCode(rawCode) {
+
+      const code =
+        String(rawCode || '').trim().toLowerCase();
+
+      if (!code) {
+        return false;
+      }
+
+      const product =
+        allProducts.find(
+          p =>
+            p.barcode &&
+            String(p.barcode).trim().toLowerCase() === code
+        );
+
+      if (!product) {
+
+        Scanner.beep(false);
+
+        Scanner.toast(
+          `No product with barcode ${rawCode}`,
+          'error'
+        );
+
+        return false;
+      }
+
+      const before = cartQtyTotal();
+
+      addToCart(product.id);   // shows its own alert if out of stock
+
+      if (cartQtyTotal() > before) {
+
+        Scanner.beep(true);
+
+        Scanner.toast(`Added: ${product.name}`);
+
+        return true;
+      }
+
+      Scanner.beep(false);
+
+      return false;
+    }
+
+
+    function openCameraScanner() {
+
+      Scanner.openCamera({
+        title: 'Scan items to add to sale',
+        continuous: true,
+        onCode: handleScannedCode
+      });
+    }
+
+
+    Scanner.listenHardware(
+      handleScannedCode,
+      { allowInputIds: ['product-search'] }
+    );
 
 
     /* ============================================================
