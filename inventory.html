@@ -44,6 +44,15 @@
           <div class="field"><label>Selling Price (Ksh)</label><input id="np-price" type="number" placeholder="e.g. 1800"></div>
         </div>
         <div class="field">
+          <label>Barcode (optional)</label>
+          <div style="display:flex; gap:8px;">
+            <input id="np-barcode" placeholder="Scan or type the barcode" autocomplete="off" style="flex:1; min-width:0;">
+            <button type="button" class="secondary" onclick="scanInto('np-barcode')" style="white-space:nowrap;">📷 Scan</button>
+            <button type="button" class="secondary" onclick="generateBarcode('np-barcode')" style="white-space:nowrap;">Generate</button>
+          </div>
+          <div style="font-size:0.75rem; color:var(--muted); margin-top:4px;">Scan the code printed on the product. No barcode on it? Press Generate to make a shop code.</div>
+        </div>
+        <div class="field">
           <label>Photo (optional)</label>
           <input id="np-photo" type="file" accept="image/*">
         </div>
@@ -55,7 +64,14 @@
     <div class="card">
       <h3 style="margin-top:0;">Products & Stock</h3>
       <div class="field">
-        <input type="text" id="inv-search" placeholder="Search products...">
+        <button type="button" onclick="openReceiveCamera()" style="width:100%;">📦 Scan to receive stock</button>
+        <div style="font-size:0.75rem; color:var(--muted); margin-top:4px;">Scan an item: known products open Restock, new barcodes open the New Product form. A USB/Bluetooth scanner works the same — just scan while nothing is selected.</div>
+      </div>
+      <div class="field">
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="inv-search" placeholder="Search products, or scan a barcode..." style="flex:1; min-width:0;">
+          <button type="button" class="secondary" onclick="scanInto('inv-search')" style="white-space:nowrap;">📷 Scan</button>
+        </div>
       </div>
       <div id="products-table"></div>
     </div>
@@ -79,6 +95,15 @@
     <div class="field"><label>Stock Number (quantity)</label><input id="ep-stock" type="number" min="0"></div>
     <div class="field"><label>Buying Price (Ksh)</label><input id="ep-cost" type="number"></div>
     <div class="field"><label>Selling Price (Ksh)</label><input id="ep-price" type="number"></div>
+    <div class="field">
+      <label>Barcode (optional)</label>
+      <div style="display:flex; gap:8px;">
+        <input id="ep-barcode" placeholder="Scan or type the barcode" autocomplete="off" style="flex:1; min-width:0;">
+        <button type="button" class="secondary" onclick="scanInto('ep-barcode')" style="white-space:nowrap;">📷 Scan</button>
+        <button type="button" class="secondary" onclick="generateBarcode('ep-barcode')" style="white-space:nowrap;">Generate</button>
+      </div>
+      <div style="font-size:0.75rem; color:var(--muted); margin-top:4px;">Scan the code printed on the product. No barcode on it? Press Generate to make a shop code.</div>
+    </div>
     <div class="field">
       <label>Current photo</label>
       <div id="ep-current-photo" style="margin-bottom:8px;"></div>
@@ -139,6 +164,7 @@ function hideOfflineBanner() {}
 </script>
 
 <script src="js/supabase-config.js"></script>
+<script src="js/scanner.js"></script>
 
 <script>
     let currentStaff = null;
@@ -161,10 +187,101 @@ function renderNav() {
     `;
 }
 
+    // ---------- barcode helpers ----------
+    function scanInto(inputId) {
+      Scanner.openCamera({
+        title: 'Scan barcode',
+        continuous: false,
+        onCode: (code) => {
+          const el = document.getElementById(inputId);
+          el.value = code;
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+          return true;
+        }
+      });
+    }
+
+    function generateBarcode(inputId) {
+      const el = document.getElementById(inputId);
+      if (el.value.trim() && !confirm('Replace the existing barcode with a new shop code?')) return;
+      el.value = Scanner.generateCode();
+    }
+
+    function barcodeErrorMessage(error) {
+      if (error.code === '23505' || /barcode/i.test(error.message || '')) {
+        if (/duplicate|unique|already exists/i.test(error.message || '')) {
+          return 'That barcode is already used by another product.';
+        }
+        if (/column .*barcode/i.test(error.message || '')) {
+          return 'The database is missing the barcode column — run migration_barcode.sql in the Supabase SQL Editor first.';
+        }
+      }
+      return 'Error: ' + error.message;
+    }
+
     function toggleAddForm() {
       const f = document.getElementById('add-product-form');
       f.style.display = f.style.display === 'none' ? 'block' : 'none';
     }
+
+    // ---------- scan to receive stock ----------
+    let receiveViaCamera = false;   // true when the camera opened the current restock
+
+    function panelIsOpen(id) {
+      return document.getElementById(id).style.display === 'block';
+    }
+
+    function handleReceiveScan(rawCode) {
+      const code = String(rawCode || '').trim();
+      if (!code) return false;
+
+      if (panelIsOpen('restock-panel') || panelIsOpen('edit-product-panel')) {
+        Scanner.beep(false);
+        Scanner.toast('Finish or close the open panel first', 'error');
+        return false;
+      }
+
+      const product = allProducts.find(
+        p => p.barcode && String(p.barcode).trim().toLowerCase() === code.toLowerCase()
+      );
+
+      if (product) {
+        // Known product -> restock panel, cursor in the quantity box
+        Scanner.beep(true);
+        openRestock(product.id);
+        setTimeout(() => document.getElementById('rs-qty').focus(), 50);
+        return true;
+      }
+
+      // Unknown barcode -> New Product form with the barcode filled in
+      Scanner.beep(true);
+      Scanner.toast('New barcode — fill in the product details');
+      if (!panelIsOpen('add-product-form')) toggleAddForm();
+      document.getElementById('np-barcode').value = code;
+      document.getElementById('add-product-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setTimeout(() => document.getElementById('np-name').focus(), 50);
+      return true;
+    }
+
+    function openReceiveCamera() {
+      Scanner.openCamera({
+        title: 'Scan item to receive stock',
+        continuous: false,
+        onCode: (code) => {
+          const ok = handleReceiveScan(code);
+          if (ok) receiveViaCamera = true;
+          return ok;
+        }
+      });
+    }
+
+    // USB / Bluetooth scanners (page body or the search box focused)
+    Scanner.listenHardware(handleReceiveScan, { allowInputIds: ['inv-search'] });
+
+    // Enter in the quantity box confirms the restock (scan -> type qty -> Enter)
+    document.getElementById('rs-qty').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); restock(); }
+    });
 
     async function addProduct() {
       const errorEl = document.getElementById('add-product-error');
@@ -177,6 +294,7 @@ function renderNav() {
       const cost = parseFloat(document.getElementById('np-cost').value);
       const price = parseFloat(document.getElementById('np-price').value);
       const photoFile = document.getElementById('np-photo').files[0];
+      const barcode = document.getElementById('np-barcode').value.trim() || null;
 
       if (!name || isNaN(price)) {
         errorEl.textContent = 'Name and selling price are required.';
@@ -213,11 +331,12 @@ function renderNav() {
         stock_quantity: isNaN(stock_quantity) ? 0 : stock_quantity,
         reorder_level: 2,
         is_active: true,
-        photo_url
+        photo_url,
+        barcode
       });
 
       if (error) {
-        errorEl.textContent = 'Error: ' + error.message;
+        errorEl.textContent = barcodeErrorMessage(error);
         errorEl.style.display = 'block';
         btn.disabled = false;
         btn.textContent = 'Save Product';
@@ -230,6 +349,7 @@ function renderNav() {
       document.getElementById('np-cost').value = '';
       document.getElementById('np-price').value = '';
       document.getElementById('np-photo').value = '';
+      document.getElementById('np-barcode').value = '';
       btn.disabled = false;
       btn.textContent = 'Save Product';
       toggleAddForm();
@@ -288,7 +408,7 @@ function renderNav() {
               return `
                 <tr>
                   <td>${photoCell}</td>
-                  <td><strong>${escapeHtml(p.name)}</strong></td>
+                  <td><strong>${escapeHtml(p.name)}</strong>${p.barcode ? `<div style="font-size:0.72rem; color:var(--muted);">▮ ${escapeHtml(p.barcode)}</div>` : ''}</td>
                   <td style="font-size:0.78rem;">${escapeHtml(p.department || '—')}</td>
                   <td>${escapeHtml(p.category || '—')}</td>
                   <td>Ksh ${cost.toLocaleString()}</td>
@@ -310,7 +430,8 @@ function renderNav() {
     document.getElementById('inv-search').addEventListener('input', (e) => {
       const q = e.target.value.toLowerCase();
       renderProducts(allProducts.filter(p =>
-        p.name.toLowerCase().includes(q) || (p.category || '').toLowerCase().includes(q)
+        p.name.toLowerCase().includes(q) || (p.category || '').toLowerCase().includes(q) ||
+        (p.barcode || '').toLowerCase().includes(q)
       ));
     });
 
@@ -319,6 +440,7 @@ function renderNav() {
     function openRestock(productId) {
       const product = allProducts.find(p => p.id === productId);
       if (!product) return;
+      receiveViaCamera = false;   // the camera flow sets this again right after opening
       restockingProductId = productId;
 
       document.getElementById('rs-name').textContent = product.name;
@@ -372,7 +494,11 @@ function renderNav() {
       }
 
       await loadProducts();
+      const scanNext = receiveViaCamera;
+      receiveViaCamera = false;
       closeRestockPanel();
+      Scanner.toast(`${product.name}: +${addQty} (now ${newQty})`);
+      if (scanNext) openReceiveCamera();   // camera flow: scan the next item
     }
 
     async function deleteProduct(productId, productName) {
@@ -395,6 +521,7 @@ function renderNav() {
       document.getElementById('ep-cost').value = product.cost ?? '';
       document.getElementById('ep-price').value = product.price ?? '';
       document.getElementById('ep-photo').value = '';
+      document.getElementById('ep-barcode').value = product.barcode || '';
       document.getElementById('ep-current-photo').innerHTML = product.photo_url
         ? `<img src="${escapeHtml(product.photo_url)}" style="width:80px; height:80px; object-fit:cover; border-radius:8px;">`
         : `<span style="color:var(--muted); font-size:0.85rem;">No photo yet</span>`;
@@ -421,6 +548,7 @@ function renderNav() {
       const cost = parseFloat(document.getElementById('ep-cost').value);
       const price = parseFloat(document.getElementById('ep-price').value);
       const photoFile = document.getElementById('ep-photo').files[0];
+      const barcode = document.getElementById('ep-barcode').value.trim() || null;
 
       if (!name || isNaN(price)) {
         errorEl.textContent = 'Name and selling price are required.';
@@ -435,7 +563,8 @@ function renderNav() {
       const updates = {
         name, department, category, price,
         cost: isNaN(cost) ? 0 : cost,
-        stock_quantity: isNaN(stock_quantity) ? 0 : stock_quantity
+        stock_quantity: isNaN(stock_quantity) ? 0 : stock_quantity,
+        barcode
       };
 
       if (photoFile) {
@@ -459,7 +588,7 @@ function renderNav() {
       btn.textContent = 'Save Changes';
 
       if (error) {
-        errorEl.textContent = 'Error: ' + error.message;
+        errorEl.textContent = barcodeErrorMessage(error);
         errorEl.style.display = 'block';
         return;
       }
