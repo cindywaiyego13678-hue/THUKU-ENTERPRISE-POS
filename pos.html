@@ -362,7 +362,9 @@
           </label>
 
           <select id="payment-method">
-            <option value="mpesa">M-Pesa</option>
+            <option value="paybill_stk">M-Pesa Paybill — send prompt to customer</option>
+            <option value="paybill_code">M-Pesa Paybill — customer already paid (enter code)</option>
+            <option value="pochi_code">Pochi la Biashara (enter code)</option>
             <option value="cash">Cash</option>
             <option value="card">Card</option>
           </select>
@@ -499,6 +501,40 @@
 
 
   <!-- ============================================================
+       M-PESA PAYMENT DIALOG (Paybill prompt / Pochi code entry)
+  ============================================================ -->
+
+  <div
+    id="pay-overlay"
+    style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:80;"
+  ></div>
+
+  <div
+    id="pay-panel"
+    class="card"
+    style="display:none; position:fixed; top:10%; left:50%; transform:translateX(-50%); width:92%; max-width:380px; z-index:90; max-height:80vh; overflow-y:auto;"
+  >
+    <h3 id="pay-title" style="margin-top:0;"></h3>
+    <p id="pay-msg" style="font-size:0.9rem; line-height:1.45;"></p>
+
+    <div id="pay-code-box" style="display:none;">
+      <input
+        type="text"
+        id="pay-code"
+        maxlength="10"
+        autocomplete="off"
+        autocapitalize="characters"
+        placeholder="e.g. UI12ABC345"
+        style="text-transform:uppercase; letter-spacing:1px;"
+      >
+    </div>
+
+    <p id="pay-error" class="error-text" style="display:none;"></p>
+    <div id="pay-actions" style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;"></div>
+  </div>
+
+
+  <!-- ============================================================
        JAVASCRIPT FILES
   ============================================================ -->
 
@@ -506,6 +542,7 @@
   <script src="js/supabase-config.js"></script>
   <script src="js/offline-sync.js"></script>
   <script src="js/scanner.js"></script>
+  <script src="js/payment-messages.js"></script>
 
 
   <script>
@@ -2075,6 +2112,261 @@
        CHECKOUT
     ============================================================ */
 
+
+    /* ============================================================
+       M-PESA PAYMENTS (Paybill STK prompt + code verification)
+    ============================================================ */
+
+    function normalizePaymentMethod(ui) {
+      if (ui.startsWith('paybill')) return 'paybill';
+      if (ui.startsWith('pochi')) return 'pochi';
+      return ui;
+    }
+
+    function payModal({ title, msg, showCode = false, buttons = [] }) {
+      document.getElementById('pay-title').textContent = title;
+      document.getElementById('pay-msg').textContent = msg || '';
+      document.getElementById('pay-code-box').style.display = showCode ? 'block' : 'none';
+      payError('');
+
+      const actions = document.getElementById('pay-actions');
+      actions.innerHTML = '';
+      buttons.forEach(b => {
+        const el = document.createElement('button');
+        el.type = 'button';
+        el.textContent = b.label;
+        el.style.flex = '1';
+        if (b.cls) el.className = b.cls;
+        el.onclick = b.handler;
+        actions.appendChild(el);
+      });
+
+      document.getElementById('pay-overlay').style.display = 'block';
+      document.getElementById('pay-panel').style.display = 'block';
+    }
+
+    function payError(text) {
+      const el = document.getElementById('pay-error');
+      el.textContent = text;
+      el.style.display = text ? 'block' : 'none';
+    }
+
+    function closePayModal() {
+      document.getElementById('pay-overlay').style.display = 'none';
+      document.getElementById('pay-panel').style.display = 'none';
+    }
+
+    async function fnErrorMessage(error, data) {
+      if (data && data.error) return data.error;
+      try { const b = await error.context.json(); return b.error || error.message; }
+      catch (_) { return error.message; }
+    }
+
+    /*
+     * Paybill STK flow. The sale already exists as 'pending'.
+     * Resolves { ok:true, receipt } or { ok:false, message }.
+     */
+    async function runStkFlow(saleId, phone, total) {
+
+      payModal({
+        title: 'Sending M-Pesa prompt…',
+        msg: `Requesting Ksh ${total.toLocaleString()} from ${phone}`
+      });
+
+      const { data, error } =
+        await supabaseClient.functions.invoke('mpesa-stk-push', {
+          body: { sale_id: saleId, phone }
+        });
+
+      if (error || (data && data.error)) {
+        await supabaseClient.rpc('void_pending_sale', { p_sale_id: saleId });
+        closePayModal();
+        return {
+          ok: false,
+          message: 'Could not send the M-Pesa prompt: ' + (await fnErrorMessage(error, data))
+        };
+      }
+
+      return new Promise((resolve) => {
+
+        let startedAt = Date.now();
+        let timedOut = false;
+        let finished = false;
+        let timer = null;
+
+        const finish = (result) => {
+          if (finished) return;
+          finished = true;
+          clearInterval(timer);
+          closePayModal();
+          resolve(result);
+        };
+
+        const readSale = async () => {
+          const { data: s } = await supabaseClient
+            .from('sales').select('status, mpesa_receipt').eq('id', saleId).single();
+          return s;
+        };
+
+        const cancelSale = async () => {
+          await supabaseClient.rpc('void_pending_sale', { p_sale_id: saleId });
+          const s = await readSale();   // the customer may have paid in the same second
+          if (s && s.status === 'completed') {
+            finish({ ok: true, receipt: s.mpesa_receipt });
+          } else {
+            finish({
+              ok: false,
+              message: 'Sale cancelled and stock restored. If the customer says they already paid, ' +
+                       'get their M-Pesa code and use "Paybill — customer already paid".'
+            });
+          }
+        };
+
+        const resendInstructions = () => {
+          const text = buildPaymentInstructions('paybill', total);
+          if (phone) openWhatsappWith(phone, text); else copyToClipboard(text);
+        };
+
+        const showWaiting = () => {
+          timedOut = false;
+          startedAt = Date.now();
+          payModal({
+            title: 'Waiting for customer…',
+            msg: `Ask the customer to check their phone and enter their M-Pesa PIN. Amount: Ksh ${total.toLocaleString()}`,
+            buttons: [
+              { label: '📱 Resend on WhatsApp', handler: resendInstructions },
+              { label: 'Cancel sale', cls: 'secondary', handler: cancelSale }
+            ]
+          });
+        };
+
+        const showTimedOut = () => {
+          timedOut = true;
+          payModal({
+            title: 'No response yet',
+            msg: 'The customer has not paid yet. The prompt may have been missed or their phone may be off.',
+            buttons: [
+              { label: '📱 Send instructions', handler: resendInstructions },
+              { label: 'Keep waiting', handler: showWaiting },
+              { label: 'Cancel sale', cls: 'secondary', handler: cancelSale }
+            ]
+          });
+        };
+
+        showWaiting();
+
+        timer = setInterval(async () => {
+          const s = await readSale();
+          if (!s) return;
+          if (s.status === 'completed') {
+            finish({ ok: true, receipt: s.mpesa_receipt });
+          } else if (s.status === 'void') {
+            finish({
+              ok: false,
+              message: 'The payment was cancelled, declined or timed out on the customer\'s phone. Stock restored — you can try again.'
+            });
+          } else if (!timedOut && Date.now() - startedAt > 90000) {
+            showTimedOut();
+          }
+        }, 3000);
+      });
+    }
+
+    /*
+     * Code-entry flow (Paybill already paid / Pochi).
+     * Resolves { code, verified } or null if the cashier backs out.
+     */
+    function collectMpesaCode(channel, total, phone) {
+
+      const isPochi = channel === 'pochi';
+      const canOverride = ['admin', 'manager'].includes(currentStaff?.role);
+
+      return new Promise((resolve) => {
+
+        const cancel = () => { closePayModal(); resolve(null); };
+
+        const reasons = {
+          not_found: 'Payment not found yet. It can take a few seconds to arrive — try again shortly.',
+          already_used: 'This M-Pesa code has already been used for another sale.',
+          too_old: 'This payment is more than 24 hours old and cannot be used for a new sale.',
+          not_logged_in: 'Session expired. Please log in again.'
+        };
+
+        const sendInstructions = () => {
+          const text = buildPaymentInstructions(channel, total);
+          if (phone) openWhatsappWith(phone, text); else copyToClipboard(text);
+        };
+
+        const buildDialog = (overrideOffered) => {
+          const buttons = [
+            { label: phone ? '📱 Send pay details' : '📋 Copy pay details', cls: 'secondary', handler: sendInstructions },
+            { label: 'Verify payment', handler: submit },
+            { label: 'Cancel', cls: 'secondary', handler: cancel }
+          ];
+          if (overrideOffered) {
+            buttons.splice(1, 0, {
+              label: 'Record unverified',
+              cls: 'danger',
+              handler: () => {
+                const code = document.getElementById('pay-code').value.trim().toUpperCase();
+                if (!confirm('Record this sale WITHOUT system confirmation? It will be flagged for the owner to check.')) return;
+                closePayModal();
+                resolve({ code, verified: false });
+              }
+            });
+          }
+          const keep = document.getElementById('pay-code').value;
+          payModal({
+            title: isPochi ? 'Pochi la Biashara payment' : 'Paybill payment',
+            msg: `Enter the M-Pesa code from the customer's confirmation message. Amount due: Ksh ${total.toLocaleString()}.` +
+                 (isPochi ? ' Also confirm the money in the Pochi balance before handing over goods.' : ''),
+            showCode: true,
+            buttons
+          });
+          document.getElementById('pay-code').value = keep;
+        };
+
+        async function submit() {
+          const code = document.getElementById('pay-code').value.trim().toUpperCase();
+          if (!/^[A-Z0-9]{10}$/.test(code)) {
+            payError('An M-Pesa code is 10 letters/numbers, e.g. UI12ABC345.');
+            return;
+          }
+          payError('Checking…');
+
+          const { data, error } = await supabaseClient.rpc('verify_mpesa_code', {
+            p_code: code, p_channel: channel, p_total: total
+          });
+
+          if (error) { payError('Could not verify: ' + error.message); return; }
+
+          if (data.ok) {
+            closePayModal();
+            resolve({ code, verified: true });
+            return;
+          }
+
+          let msg = reasons[data.reason] || 'Could not verify this payment.';
+          if (data.reason === 'underpaid') {
+            msg = `Customer paid Ksh ${Number(data.amount).toLocaleString()} but the total is Ksh ${total.toLocaleString()}.`;
+          } else if (data.reason === 'wrong_channel') {
+            msg = `This code was paid to ${data.channel === 'pochi' ? 'Pochi la Biashara' : 'the Paybill'}, not ${isPochi ? 'Pochi' : 'Paybill'}. Pick the matching payment method.`;
+          }
+          const offerOverride = data.reason === 'not_found' && canOverride;
+          if (data.reason === 'not_found' && !canOverride) {
+            msg += ' If it still does not appear, ask a manager to record it.';
+          }
+          buildDialog(offerOverride);
+          payError(msg);
+        }
+
+        buildDialog(false);
+        document.getElementById('pay-code').value = '';
+        document.getElementById('pay-code').focus();
+      });
+    }
+
+
     async function checkout() {
 
       const errorEl =
@@ -2147,10 +2439,14 @@
         );
 
 
-      const paymentMethod =
+      const paymentUi =
         document.getElementById(
           'payment-method'
         ).value;
+
+      // 'paybill_stk' / 'paybill_code' -> 'paybill', 'pochi_code' -> 'pochi'
+      const paymentMethod =
+        normalizePaymentMethod(paymentUi);
 
 
       const customerName =
@@ -2184,6 +2480,62 @@
         }));
 
 
+      /*
+       * M-PESA (Paybill / Pochi) pre-checks.
+       * These need internet, so they are not queued offline.
+       */
+      const isMpesa =
+        paymentMethod === 'paybill' ||
+        paymentMethod === 'pochi';
+
+      let saleStatus = 'completed';
+      let mpesaReceipt = null;
+      let paymentVerified = true;
+
+      const abortCheckout = (message) => {
+
+        if (message) {
+          errorEl.textContent = message;
+          errorEl.style.display = 'block';
+        }
+
+        btn.disabled = false;
+        btn.textContent = 'Complete Sale';
+      };
+
+      if (isMpesa) {
+
+        if (!navigator.onLine) {
+          abortCheckout('M-Pesa payments need an internet connection. Reconnect, or take cash.');
+          return;
+        }
+
+        if (paymentUi === 'paybill_stk') {
+
+          const digits = (customerPhone || '').replace(/\D/g, '');
+
+          if (!/^(254|0)?[17]\d{8}$/.test(digits)) {
+            abortCheckout('Enter the customer\'s Safaricom number (07XXXXXXXX) to send the M-Pesa prompt.');
+            return;
+          }
+
+          saleStatus = 'pending';
+
+        } else {
+
+          const result = await collectMpesaCode(paymentMethod, total, customerPhone);
+
+          if (!result) {
+            abortCheckout('');
+            return;
+          }
+
+          mpesaReceipt = result.code;
+          paymentVerified = result.verified;
+        }
+      }
+
+
       const saleData = {
 
         cashier_id:
@@ -2211,7 +2563,15 @@
           markup,
 
         status:
-          'completed',
+          saleStatus,
+
+        ...(mpesaReceipt
+          ? { mpesa_receipt: mpesaReceipt }
+          : {}),
+
+        ...(paymentVerified
+          ? {}
+          : { payment_verified: false }),
 
         items:
           saleItems
@@ -2362,6 +2722,33 @@
         }
 
 
+        /*
+         * PAYBILL PROMPT: the sale is saved as 'pending' with stock reserved.
+         * Wait for the customer to pay. If they don't, the sale is voided
+         * and the stock is restored by the database.
+         */
+        if (saleStatus === 'pending') {
+
+          const outcome =
+            await runStkFlow(
+              insertedSale.id,
+              customerPhone,
+              total
+            );
+
+          if (!outcome.ok) {
+
+            await loadProducts();
+
+            abortCheckout(outcome.message);
+
+            return;
+          }
+
+          mpesaReceipt = outcome.receipt;
+        }
+
+
         successfulOnlineSale = true;
 
 
@@ -2388,6 +2775,8 @@
 
           paymentMethod,
 
+          mpesaReceipt,
+
           customerName,
 
           customerPhone,
@@ -2404,6 +2793,22 @@
           'Online checkout failed:',
           err
         );
+
+
+        if (isMpesa) {
+
+          // M-Pesa sales are never queued offline.
+          await loadProducts();
+
+          abortCheckout(
+            err && err.code === '23505'
+              ? 'That M-Pesa code has already been used for another sale.'
+              : 'M-Pesa sale could not be completed: ' +
+                ((err && err.message) || 'unknown error')
+          );
+
+          return;
+        }
 
 
         try {
@@ -2674,6 +3079,22 @@
           Payment:
           ${escapeHtml(data.paymentMethod)}
         </div>
+
+        ${
+          data.mpesaReceipt
+            ? `
+              <div
+                style="
+                  font-size:0.8rem;
+                  color:var(--muted);
+                "
+              >
+                M-Pesa code:
+                ${escapeHtml(data.mpesaReceipt)}
+              </div>
+            `
+            : ''
+        }
 
 
         ${
