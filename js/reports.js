@@ -222,7 +222,9 @@ function renderReport(sales, deptFilter, rangeLabel) {
   }
 
   tbody.innerHTML = visibleSales.map(s => {
-    const receipt = s.mpesa_receipt || (s.payment_method === 'cash' ? 'CASH' : '—');
+    const receipt = s.mpesa_receipt
+      ? s.mpesa_receipt + (s.payment_verified === false ? ' ⚠ unverified' : '')
+      : (s.payment_method === 'cash' ? 'CASH' : '—');
     const cashier = s.staff?.full_name || '—';
     // Weekly/monthly ranges span multiple days, so show the date too, not just the time.
     const time = currentPeriod === 'daily'
