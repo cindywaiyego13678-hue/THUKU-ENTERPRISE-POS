@@ -13,12 +13,18 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
+    body .container { max-width: 1600px; }
+    @media (max-width: 900px) { .pos-grid { grid-template-columns: 1fr !important; } }
     #product-list, #cart-items { max-height: 62vh; overflow: auto; }
     .pos-table { width:100%; border-collapse:collapse; font-size:0.85rem; }
     .pos-table th { position:sticky; top:0; z-index:1; background:#eef2f6; text-align:left; padding:6px 8px; font-size:0.75rem; }
     .pos-table td { padding:4px 8px; border-bottom:1px solid var(--border); vertical-align:middle; }
     .pos-table td.num, .pos-table th.num { text-align:right; }
     .pos-table tr.prow { cursor:pointer; }
+    #product-list .pos-table td:nth-child(2) { min-width:260px; }
+    #product-list { scrollbar-gutter: stable; }
+    #product-list .pos-table th:nth-child(4), #product-list .pos-table td:nth-child(4) { min-width:80px; padding-left:16px; }
+    #product-list .pos-table th:nth-child(5), #product-list .pos-table td:nth-child(5) { min-width:90px; padding-left:20px; padding-right:22px; white-space:nowrap; }
     .pos-table tr.prow:hover { background:#f3f7fb; }
     .pos-table tr.out { opacity:0.45; cursor:not-allowed; }
   </style>
@@ -57,8 +63,8 @@
     <div class="nav-tabs" id="nav-tabs"></div>
 
     <div
-      class="grid"
-      style="grid-template-columns:1fr 1.25fr;"
+      class="grid pos-grid"
+      style="grid-template-columns:1.5fr 1fr;"
     >
 
       <!-- ========================================================
