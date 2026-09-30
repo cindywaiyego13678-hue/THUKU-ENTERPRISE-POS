@@ -3,235 +3,207 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Staff — Thuku Enterprise</title>
+<title>Reports — Thuku Enterprise</title>
 <link rel="stylesheet" href="css/style.css">
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0f2137">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-  body .container { max-width: 1200px; }
+  .ledger-summary {
+    font-family: 'Courier New', Consolas, monospace;
+    font-size: 0.85rem;
+    line-height: 1.55;
+    border: 1px solid var(--border, #33455c);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+  }
+  .ledger-title {
+    font-weight: 700;
+    margin-bottom: 8px;
+    text-decoration: underline;
+  }
+  .ledger-line {
+    display: grid;
+    grid-template-columns: minmax(170px, 1.3fr) 1fr 1fr;
+    gap: 14px;
+    white-space: nowrap;
+  }
+  .ledger-label { white-space: normal; }
+  .ledger-calc { text-align: left; }
+  .ledger-calc .arrow { margin: 0 4px; color: var(--muted, #8ea0b6); }
+  .ledger-totals {
+    display: grid;
+    grid-template-columns: minmax(170px, 1.3fr) 1fr 1fr;
+    gap: 14px;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border, #33455c);
+  }
+  .ledger-totals .ledger-qty-total { font-weight: 700; }
+  .ledger-totals-num {
+    font-weight: 700;
+    border-bottom: 2px solid currentColor;
+    display: inline-block;
+    padding-bottom: 2px;
+  }
+  .ledger-profit-row {
+    display: grid;
+    grid-template-columns: minmax(170px, 1.3fr) 1fr 1fr;
+    gap: 14px;
+    margin-top: 4px;
+  }
+  .ledger-profit-row .ledger-profit-num { font-weight: 800; }
+  .period-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .period-tabs button {
+    flex: 1;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border, #33455c);
+    background: transparent;
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+  .period-tabs button.active {
+    background: var(--accent, #0f2137);
+    color: #fff;
+    font-weight: 700;
+  }
+  .range-label {
+    font-size: 0.85rem;
+    color: var(--muted, #8ea0b6);
+    margin-top: -6px;
+    margin-bottom: 8px;
+  }
+  body .container { max-width: 1400px; }
   .card { overflow-x: auto; }
-  #staff-list th { padding: 10px 14px; white-space: nowrap; }
-  #staff-list td { padding: 10px 14px; vertical-align: middle; }
-  #staff-list td button { margin-right: 6px; padding: 6px 12px !important; }
+  .card table th { padding: 10px 14px; white-space: nowrap; }
+  .card table td { padding: 9px 14px; vertical-align: middle; }
+  #sales-table td:last-child { white-space: nowrap; }
+  #sales-table button { margin-right: 6px; padding: 5px 10px !important; }
+  .grid-4 { gap: 14px; }
 </style>
 </head>
 <body>
-  <div class="topbar">
-    <h1>👥 Staff</h1>
-    <div style="display:flex; align-items:center; gap:12px;">
-      <span class="role-tag" id="staff-name">...</span>
-      <button class="secondary" onclick="logout()" style="color:#fff; border-color:#3a5169;">Logout</button>
+<div class="topbar">
+    <h1>📊 Reports</h1>
+    <div style="display:flex;gap:10px;align-items:center;">
+        <span id="staff-name"></span>
+        <button onclick="logout()">Logout</button>
     </div>
-  </div>
+</div>
+<div class="container">
+<div class="nav-tabs" id="nav-tabs"></div>
+<div class="card">
+<h2>Sales Reports</h2>
 
-  <div class="container">
-    <div class="nav-tabs" id="nav-tabs"></div>
+<div class="period-tabs" id="period-tabs">
+  <button type="button" class="active" data-period="daily" onclick="setPeriod('daily', this)">Daily</button>
+  <button type="button" data-period="weekly" onclick="setPeriod('weekly', this)">Weekly</button>
+  <button type="button" data-period="monthly" onclick="setPeriod('monthly', this)">Monthly</button>
+</div>
 
-    <div class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h3 style="margin:0;">Add New Staff Member</h3>
-        <button onclick="toggleAddForm()" id="toggle-add-btn">+ New Staff</button>
-      </div>
-      <div id="add-staff-form" style="display:none; margin-top:14px;">
-        <div class="grid grid-2">
-          <div class="field"><label>Full name</label><input id="ns-name" placeholder="e.g. Nelly Wanjiru"></div>
-          <div class="field"><label>Email</label><input id="ns-email" type="email" placeholder="nelly@shop.com"></div>
-          <div class="field"><label>Temporary password</label><input id="ns-password" type="text" placeholder="At least 6 characters"></div>
-          <div class="field">
-            <label>Role</label>
-            <select id="ns-role" onchange="toggleDeptField()">
-              <option value="cashier">Cashier — POS only</option>
-              <option value="manager">Manager — POS + Inventory</option>
-              <option value="admin">Admin — full access</option>
-            </select>
-          </div>
-          <div class="field" id="ns-dept-field">
-            <label>Department (shop)</label>
-            <select id="ns-department">
-              <option value="Household Items">Household Items</option>
-              <option value="Clothes & Shoes">Clothes &amp; Shoes</option>
-            </select>
-          </div>
-        </div>
-        <p style="font-size:0.8rem; color:var(--muted); margin-top:-4px;">Cashiers and managers only see and sell products in their assigned department. Admins always see both. Share the password with them directly — they can change it later.</p>
-        <button onclick="addStaff()" id="add-staff-btn">Create Staff Account</button>
-        <p class="error-text" id="add-staff-error" style="display:none;"></p>
-      </div>
-    </div>
-
-    <div class="card">
-      <h3 style="margin-top:0;">Current Staff</h3>
-      <div id="staff-list"></div>
-    </div>
-  </div>
-
-  <script src="js/offline-cache.js"></script>
-  <script src="js/supabase-config.js"></script>
-  <script>
-    let currentStaff = null;
-    let allStaff = [];
-
-    const STAFF_FUNCTION_URL = 'https://ipbqeyeanlyvklrjcbxl.supabase.co/functions/v1/create-staff';
-
-    (async () => {
-      currentStaff = await requireAuth(['admin']);
-      if (!currentStaff) return;
-      document.getElementById('staff-name').textContent = `${currentStaff.full_name} (owner)`;
-      renderNav();
-      await loadStaff();
-    })();
-
-    function renderNav() {
-      document.getElementById('nav-tabs').innerHTML = `
-        <a href="pos.html">POS</a>
-        <a href="inventory.html">Inventory</a>
-        <a href="dashboard.html">Dashboard</a>
-        <a href="staff.html" class="active">Staff</a>
-        <a href="reports.html">Reports</a>
-      `;
-    }
-
-    function toggleDeptField() {
-      const role = document.getElementById('ns-role').value;
-      const field = document.getElementById('ns-dept-field');
-      // Admins always have full access — department field isn't relevant to them.
-      field.style.display = role === 'admin' ? 'none' : 'block';
-    }
-
-    function toggleAddForm() {
-      const f = document.getElementById('add-staff-form');
-      f.style.display = f.style.display === 'none' ? 'block' : 'none';
-    }
-
-    async function loadStaff() {
-      const { data, error } = await supabaseClient.from('staff').select('*').order('full_name');
-      if (error) { console.error(error); return; }
-      allStaff = data;
-      renderStaffList(allStaff);
-    }
-
-    function renderStaffList(staffRows) {
-      const el = document.getElementById('staff-list');
-      if (!staffRows.length) { el.innerHTML = '<div class="empty-state">No staff yet.</div>'; return; }
-      el.innerHTML = `
-        <table>
-          <thead><tr><th>Name</th><th>Role</th><th>Department</th><th>Status</th><th></th></tr></thead>
-          <tbody>
-            ${staffRows.map(s => `
-              <tr>
-                <td>${escapeHtml(s.full_name)}</td>
-                <td><span class="badge in_stock">${s.role}</span></td>
-                <td style="font-size:0.8rem;">${s.role === 'admin' ? 'Both (admin)' : escapeHtml(s.department || '⚠️ none set')}</td>
-                <td>${s.is_active ? '<span class="badge in_stock">active</span>' : '<span class="badge low">inactive</span>'}</td>
-                <td style="white-space:nowrap;">
-                  ${s.id !== currentStaff.id ? `
-                    <button class="secondary" style="padding:6px 10px; font-size:0.8rem;" onclick='toggleActive(${JSON.stringify(s.id)}, ${s.is_active})'>${s.is_active ? 'Deactivate' : 'Reactivate'}</button>
-                    <button class="danger" style="padding:6px 10px; font-size:0.8rem;" onclick='deleteStaff(${JSON.stringify(s.id)}, ${JSON.stringify(s.full_name)})'>Delete</button>
-                  ` : '<span style="color:var(--muted); font-size:0.8rem;">You</span>'}
-                </td>
-              </tr>`).join('')}
-          </tbody>
-        </table>`;
-    }
-
-    async function addStaff() {
-      const errorEl = document.getElementById('add-staff-error');
-      errorEl.style.display = 'none';
-
-      const full_name = document.getElementById('ns-name').value.trim();
-      const email = document.getElementById('ns-email').value.trim();
-      const password = document.getElementById('ns-password').value;
-      const role = document.getElementById('ns-role').value;
-      // Admins always see both departments, so we don't send one for them.
-      const department = role === 'admin' ? null : document.getElementById('ns-department').value;
-
-      if (!full_name || !email || !password) {
-        errorEl.textContent = 'Please fill in all fields.';
-        errorEl.style.display = 'block';
-        return;
-      }
-      if (password.length < 6) {
-        errorEl.textContent = 'Password must be at least 6 characters.';
-        errorEl.style.display = 'block';
-        return;
-      }
-      if (role !== 'admin' && !department) {
-        errorEl.textContent = 'Please select a department for this staff member.';
-        errorEl.style.display = 'block';
-        return;
-      }
-
-      const btn = document.getElementById('add-staff-btn');
-      btn.disabled = true;
-      btn.textContent = 'Creating...';
-
-      try {
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        const res = await fetch(STAFF_FUNCTION_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`
-          },
-          body: JSON.stringify({ action: 'create', full_name, email, password, role, department })
-        });
-        const result = await res.json();
-
-        if (!res.ok) throw new Error(result.error || 'Failed to create staff member');
-
-        alert(`${full_name} was added as ${role}. Share their email and password with them so they can log in.`);
-        document.getElementById('ns-name').value = '';
-        document.getElementById('ns-email').value = '';
-        document.getElementById('ns-password').value = '';
-        document.getElementById('ns-role').value = 'cashier';
-        toggleDeptField();
-        toggleAddForm();
-        await loadStaff();
-      } catch (err) {
-        errorEl.textContent = err.message;
-        errorEl.style.display = 'block';
-      }
-
-      btn.disabled = false;
-      btn.textContent = 'Create Staff Account';
-    }
-
-    async function toggleActive(staffId, currentlyActive) {
-      const { error } = await supabaseClient
-        .from('staff')
-        .update({ is_active: !currentlyActive })
-        .eq('id', staffId);
-      if (error) { alert('Error: ' + error.message); return; }
-      await loadStaff();
-    }
-
-    async function deleteStaff(staffId, fullName) {
-      if (!confirm(`Permanently delete ${fullName}'s account? This cannot be undone. Their past sales records will be kept, but they will no longer be able to log in.`)) return;
-
-      try {
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        const res = await fetch(STAFF_FUNCTION_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`
-          },
-          body: JSON.stringify({ action: 'delete', staff_id: staffId })
-        });
-        const result = await res.json();
-        if (!res.ok) throw new Error(result.error || 'Failed to delete staff member');
-        await loadStaff();
-      } catch (err) {
-        alert('Error: ' + err.message);
-      }
-    }
-
-    function escapeHtml(str) {
-      const div = document.createElement('div');
-      div.textContent = str ?? '';
-      return div.innerHTML;
-    }
-  </script>
+<div class="grid grid-2">
+<div class="field">
+<label id="report-date-label">Select Report Date</label>
+<input type="date" id="report-date">
+</div>
+<div class="field">
+<label>Department</label>
+<select id="report-department">
+<option value="">All Departments (combined)</option>
+<option value="Household Items">Household Items only</option>
+<option value="Clothes & Shoes">Clothes &amp; Shoes only</option>
+</select>
+</div>
+</div>
+<p class="range-label" id="range-label"></p>
+<button onclick="loadReport()">
+Generate Report
+</button>
+<p id="dept-filter-note" style="display:none; font-size:0.8rem; color:var(--muted); margin-top:8px;">Showing figures for this department only. Discounts, markup, and profit reflect this department's share of each sale.</p>
+</div>
+<div class="grid grid-4">
+<div class="stat-card">
+<div class="label">Transactions</div>
+<div class="value" id="total-sales">0</div>
+</div>
+<div class="stat-card">
+<div class="label">Revenue</div>
+<div class="value good" id="total-revenue">
+KSh 0
+</div>
+</div>
+<div class="stat-card">
+<div class="label">Items Sold</div>
+<div class="value" id="items-sold">0</div>
+</div>
+<div class="stat-card">
+<div class="label">Average Sale</div>
+<div class="value" id="average-sale">
+KSh 0
+</div>
+</div>
+<div class="stat-card">
+<div class="label">Discounts Given</div>
+<div class="value alert" id="total-discounts">KSh 0</div>
+</div>
+<div class="stat-card">
+<div class="label">Markup Added</div>
+<div class="value good" id="total-markup">KSh 0</div>
+</div>
+<div class="stat-card">
+<div class="label">Gross Profit</div>
+<div class="value good" id="total-profit">KSh 0</div>
+</div>
+<div class="stat-card">
+<div class="label">Losses</div>
+<div class="value alert" id="total-losses">KSh 0</div>
+</div>
+</div>
+<div class="card">
+<h2>Product Summary</h2>
+<div id="product-summary"></div>
+</div>
+<div class="card">
+<h2>Sales List</h2>
+<table>
+<thead>
+<tr>
+<th>Receipt</th>
+<th>Cashier</th>
+<th>Amount</th>
+<th>Payment</th>
+<th>Time</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody id="sales-table">
+</tbody>
+</table>
+</div>
+<div class="card">
+<h2>Losses Recorded</h2>
+<table>
+<thead>
+<tr>
+<th>Product</th>
+<th>Department</th>
+<th>Qty</th>
+<th>Value</th>
+<th>Reason</th>
+<th>Time</th>
+</tr>
+</thead>
+<tbody id="losses-table">
+</tbody>
+</table>
+</div>
+</div>
+<script src="js/offline-cache.js"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/reports.js"></script>
 </body>
 </html>
