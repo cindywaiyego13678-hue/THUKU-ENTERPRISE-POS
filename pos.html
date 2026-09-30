@@ -3189,7 +3189,10 @@
 
       let text =
         `*Thuku Enterprise Receipt*\n` +
-        `${data.date.toLocaleString('en-KE')}\n\n` +
+        `${data.date.toLocaleString('en-KE')}\n` +
+        (data.receiptNo ? `Receipt No: R${String(data.receiptNo).padStart(6, '0')}\n` : '') +
+        (data.cashier ? `Served by: ${data.cashier}\n` : '') +
+        `\n` +
         `${lines}\n\n` +
         `Subtotal: Ksh ${data.subtotal.toLocaleString()}`;
 
@@ -3209,8 +3212,22 @@
 
 
       text +=
-        `\n*TOTAL: Ksh ${data.total.toLocaleString()}*` +
-        `\n\nThank you for your business!`;
+        `\n*TOTAL: Ksh ${data.total.toLocaleString()}*`;
+
+      if (data.cashReceived != null) {
+        text +=
+          `\nCash: Ksh ${Number(data.cashReceived).toLocaleString()}` +
+          `\nChange: Ksh ${Math.max(0, data.cashReceived - data.total).toLocaleString()}`;
+      }
+
+      const payLabel = { cash: 'Cash', card: 'Card', paybill: 'M-Pesa', pochi: 'Pochi la Biashara' };
+      text += `\nPayment: ${payLabel[data.paymentMethod] || data.paymentMethod}`;
+
+      if (data.mpesaReceipt) {
+        text += `\nM-Pesa code: ${data.mpesaReceipt}`;
+      }
+
+      text += `\n\nThank you for your business!`;
 
 
       const phone =
