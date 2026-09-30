@@ -66,6 +66,7 @@
     cursor: pointer;
     font-size: 0.85rem;
   }
+  .period-tabs button { color: #0f2137; }
   .period-tabs button.active {
     background: var(--accent, #0f2137);
     color: #fff;
@@ -204,6 +205,51 @@ KSh 0
 </div>
 <script src="js/offline-cache.js"></script>
 <script src="js/supabase-config.js"></script>
+<script>
+/* Shared navigation tabs for all pages (pos, reports, ...).
+   Usage: renderNav(currentStaff.role) after requireAuth() succeeds. */
+function renderNav(role) {
+  const tabs = [{ href: 'pos.html', label: 'POS' }];
+
+  if (role === 'admin') {
+    tabs.push(
+      { href: 'inventory.html', label: 'Inventory' },
+      { href: 'dashboard.html', label: 'Dashboard' },
+      { href: 'staff.html',     label: 'Staff' },
+      { href: 'reports.html',   label: 'Reports' }
+    );
+  }
+
+  if (role === 'owner') {
+    tabs.push(
+      { href: 'dashboard.html', label: 'Dashboard' },
+      { href: 'reports.html',   label: 'Reports' }
+    );
+  }
+
+  const nav = document.getElementById('nav-tabs');
+  if (!nav) return;
+
+  const current = (location.pathname.split('/').pop() || 'pos.html').toLowerCase();
+
+  nav.innerHTML = tabs.map(t =>
+    '<a href="' + t.href + '" class="' + (t.href === current ? 'active' : '') + '">' +
+    t.label + '</a>'
+  ).join('');
+}
+
+</script>
 <script src="js/reports.js"></script>
+<script>
+(async function initReportsNav() {
+  try {
+    const staff = await requireAuth(['admin','owner','manager','cashier','store_staff','lorry_seller']);
+    if (!staff) return;
+    renderNav(staff.role);
+    const n = document.getElementById('staff-name');
+    if (n && !n.textContent.trim()) n.textContent = (staff.full_name || 'Staff') + ' (' + staff.role + ')';
+  } catch (e) { console.error('Nav init failed:', e); }
+})();
+</script>
 </body>
 </html>
