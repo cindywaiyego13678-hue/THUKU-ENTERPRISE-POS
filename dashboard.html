@@ -11,6 +11,17 @@
   <meta name="theme-color" content="#0f2137">
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body .container { max-width: 1400px; }
+    .card { padding: 22px; }
+    .grid-4 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+    .stat-card { padding: 20px; }
+    .card table th { padding: 10px 14px; white-space: nowrap; }
+    .card table td { padding: 10px 14px; vertical-align: middle; }
+    #low-stock-list > div, #recent-sales > div { padding-left: 4px; padding-right: 4px; }
+    .dash-cols { gap: 20px; }
+    @media (max-width: 900px) { .dash-cols { grid-template-columns: 1fr !important; } }
+  </style>
 </head>
 
 <body>
@@ -83,7 +94,7 @@
          RECENT SALES + LOW STOCK
     ======================================================== -->
 
-    <div class="grid" style="grid-template-columns:1.2fr 1fr;">
+    <div class="grid dash-cols" style="grid-template-columns:1.2fr 1fr;">
 
       <div class="card">
 
@@ -1432,4 +1443,3 @@
 
 </body>
 </html>
-```
