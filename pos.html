@@ -371,6 +371,15 @@
 
         </div>
 
+        <!-- CASH RECEIVED / CHANGE (cash only) -->
+        <div class="field" id="cash-box">
+          <label for="cash-received">Cash received (F4)</label>
+          <input type="number" id="cash-received" min="0" step="1" placeholder="0">
+          <div style="display:flex;justify-content:space-between;font-weight:700;margin-top:6px;">
+            <span>Change</span><span id="cash-change">Ksh 0</span>
+          </div>
+        </div>
+
 
         <!-- CHECKOUT -->
         <button
@@ -1499,15 +1508,21 @@
        TOTALS
     ============================================================ */
 
-    function getSubtotal() {
+    function itemPrice(item) {
+      const p = parseFloat(item.price);
+      return Number.isFinite(p) && p >= 0 ? p : safeNumber(item.product.price);
+    }
 
-      return cart.reduce(
-        (sum, item) =>
-          sum +
-          safeNumber(item.product.price) *
-          safeNumber(item.quantity),
-        0
-      );
+    function setLinePrice(index, value) {
+      const item = cart[index];
+      if (!item) return;
+      const p = parseFloat(value);
+      item.price = Number.isFinite(p) && p >= 0 ? p : safeNumber(item.product.price);
+      renderCart();
+    }
+
+    function getSubtotal() {
+      return cart.reduce((sum, item) => sum + itemPrice(item) * safeNumber(item.quantity), 0);
     }
 
 
@@ -1606,9 +1621,10 @@
                     color:var(--muted);
                   "
                 >
-                  Ksh ${safeNumber(
-                    item.product.price
-                  ).toLocaleString()} each
+                  Ksh <input type="number" min="0" step="1" value="${itemPrice(item)}"
+                    onchange="setLinePrice(${i}, this.value)"
+                    style="width:90px;padding:2px 6px;font-size:0.8rem;${itemPrice(item) !== safeNumber(item.product.price) ? 'border-color:#f0ad00;' : ''}"> each
+                    ${itemPrice(item) !== safeNumber(item.product.price) ? '<span style="color:#b36b00;">(list ' + safeNumber(item.product.price).toLocaleString() + ')</span>' : ''}
                 </div>
 
               </div>
@@ -1662,6 +1678,18 @@
        UPDATE TOTALS
     ============================================================ */
 
+    function updateChange(total) {
+      const box = document.getElementById('cash-box');
+      const isCash = document.getElementById('payment-method').value === 'cash';
+      box.style.display = isCash ? '' : 'none';
+      const got = parseFloat(document.getElementById('cash-received').value);
+      const el = document.getElementById('cash-change');
+      if (!isCash || !Number.isFinite(got)) { el.textContent = 'Ksh 0'; el.style.color = ''; return; }
+      const diff = got - total;
+      el.textContent = diff >= 0 ? 'Ksh ' + diff.toLocaleString() : 'Short Ksh ' + Math.abs(diff).toLocaleString();
+      el.style.color = diff >= 0 ? '' : '#c0392b';
+    }
+
     function updateTotals() {
 
       const subtotal =
@@ -1710,6 +1738,7 @@
         'cart-total'
       ).textContent =
         `Ksh ${total.toLocaleString()}`;
+      updateChange(total);
     }
 
 
@@ -1806,11 +1835,9 @@
 
         cart:
           cart.map(item => ({
-            productId:
-              item.product.id,
-
-            quantity:
-              item.quantity
+            productId: item.product.id,
+            quantity: item.quantity,
+            price: item.price
           })),
 
         discount:
@@ -1844,6 +1871,7 @@
     function clearCurrentSale() {
 
       cart = [];
+      const cr = document.getElementById('cash-received'); if (cr) cr.value = '';
 
 
       document.getElementById(
@@ -2036,10 +2064,7 @@
             }
 
 
-            return {
-              product,
-              quantity
-            };
+            return { product, quantity, price: ci.price };
 
           })
           .filter(Boolean);
@@ -2461,16 +2486,24 @@
         ).value.trim() || null;
 
 
+      if (paymentUi === 'cash') {
+        const got = parseFloat(document.getElementById('cash-received').value);
+        if (Number.isFinite(got) && got < total) {
+          errorEl.textContent = 'Cash received is less than the total.';
+          errorEl.style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = 'Complete Sale';
+          return;
+        }
+      }
+
       const saleItems =
         cart.map(item => ({
 
           product_id:
             item.product.id,
 
-          unit_price:
-            safeNumber(
-              item.product.price
-            ),
+          unit_price: itemPrice(item),
 
           quantity:
             safeNumber(
@@ -2587,11 +2620,7 @@
           quantity:
             item.quantity,
 
-          price:
-            safeNumber(
-              item.product.price
-            )
-
+          price: itemPrice(item)
         }));
 
 
@@ -3437,6 +3466,24 @@
       }
     );
 
+  
+    document.getElementById('cash-received').addEventListener('input', updateTotals);
+    document.getElementById('payment-method').addEventListener('change', updateTotals);
+    updateTotals();
+
+    /* KEYBOARD SHORTCUTS: F2 search, F3 complete sale, F4 cash received,
+       F5 clear sale, F7 hold sale, Esc close receipt */
+    document.addEventListener('keydown', (e) => {
+      const map = { F2: 1, F3: 1, F4: 1, F5: 1, F7: 1, Escape: 1 };
+      if (!map[e.key]) return;
+      e.preventDefault();
+      if (e.key === 'Escape') { closeReceipt(); return; }
+      if (e.key === 'F2') { document.getElementById('product-search').focus(); return; }
+      if (e.key === 'F4') { document.getElementById('cash-received').focus(); return; }
+      if (e.key === 'F3') { document.getElementById('checkout-btn').click(); return; }
+      if (e.key === 'F5') { if (cart.length && confirm('Clear this sale?')) clearCurrentSale(); return; }
+      if (e.key === 'F7') { holdSale(); }
+    });
   </script>
 
 </body>
