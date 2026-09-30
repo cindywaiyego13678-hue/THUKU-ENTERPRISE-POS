@@ -362,8 +362,9 @@
           </label>
 
           <select id="payment-method">
-            <option value="paybill_stk">M-Pesa Paybill — send prompt to customer</option>
-            <option value="paybill_code">M-Pesa Paybill — customer already paid (enter code)</option>
+            <!-- Hidden until the shop has its own Till/Paybill (STK prompt needs it):
+            <option value="paybill_stk">M-Pesa — send prompt to customer</option> -->
+            <option value="paybill_code">M-Pesa (manual code)</option>
             <option value="pochi_code">Pochi la Biashara (enter code)</option>
             <option value="cash">Cash</option>
             <option value="card">Card</option>
@@ -2342,7 +2343,7 @@
           }
           const keep = document.getElementById('pay-code').value;
           payModal({
-            title: isPochi ? 'Pochi la Biashara payment' : 'Paybill payment',
+            title: isPochi ? 'Pochi la Biashara payment' : 'M-Pesa payment',
             msg: `Enter the M-Pesa code from the customer's confirmation message. Amount due: Ksh ${total.toLocaleString()}.` +
                  (isPochi ? ' Also confirm the money in the Pochi balance before handing over goods.' : ''),
             showCode: true,
