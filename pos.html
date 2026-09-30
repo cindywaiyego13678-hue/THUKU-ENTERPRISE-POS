@@ -13,16 +13,14 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
-    #product-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: 10px;
-      align-content: start;
-    }
-    #product-list .card {
-      margin-bottom: 0;
-      height: 100%;
-    }
+    #product-list, #cart-items { max-height: 62vh; overflow: auto; }
+    .pos-table { width:100%; border-collapse:collapse; font-size:0.85rem; }
+    .pos-table th { position:sticky; top:0; z-index:1; background:#eef2f6; text-align:left; padding:6px 8px; font-size:0.75rem; }
+    .pos-table td { padding:4px 8px; border-bottom:1px solid var(--border); vertical-align:middle; }
+    .pos-table td.num, .pos-table th.num { text-align:right; }
+    .pos-table tr.prow { cursor:pointer; }
+    .pos-table tr.prow:hover { background:#f3f7fb; }
+    .pos-table tr.out { opacity:0.45; cursor:not-allowed; }
   </style>
 </head>
 
@@ -60,7 +58,7 @@
 
     <div
       class="grid"
-      style="grid-template-columns:1.3fr 1fr;"
+      style="grid-template-columns:1fr 1.25fr;"
     >
 
       <!-- ========================================================
@@ -1161,104 +1159,24 @@
       }
 
 
-      el.innerHTML =
-        products.map(product => {
-
-          const stock =
-            safeNumber(
-              product.stock_quantity,
-              0
-            );
-
-
-          /*
-           * LOW STOCK = 5 or less.
-           */
-          const isLowStock =
-            stock > 0 &&
-            stock <= LOW_STOCK_LIMIT;
-
-
-          const isOutOfStock =
-            stock <= 0;
-
-
-          const productId =
-            String(product.id);
-
-
-          const price =
-            safeNumber(
-              product.price,
-              0
-            );
-
-
-          return `
-            <div
-              class="card"
-              style="
-                margin-bottom:8px;
-                padding:10px 14px;
-                display:flex;
-                justify-content:space-between;
-                align-items:center;
-                gap:10px;
-              "
-            >
-
-              <div style="min-width:0;">
-
-                <strong>
-                  ${escapeHtml(
-                    product.name ||
-                    'Unnamed product'
-                  )}
-                </strong>
-
-                <div
-                  style="
-                    font-size:0.8rem;
-                    color:var(--muted);
-                  "
-                >
-                  ${escapeHtml(
-                    product.category || ''
-                  )}
-
-                  · Ksh ${price.toLocaleString()}
-
-                  · ${stock} in stock
-
-                  ${
-                    isLowStock
-                      ? ' · ⚠️ LOW STOCK'
-                      : ''
-                  }
-
-                  ${
-                    isOutOfStock
-                      ? ' · ❌ OUT OF STOCK'
-                      : ''
-                  }
-                </div>
-
-              </div>
-
-
-              <button
-                type="button"
-                ${isOutOfStock ? 'disabled' : ''}
-                data-product-id="${escapeHtml(productId)}"
-                onclick="addToCart(this.dataset.productId)"
-              >
-                Add
-              </button>
-
-            </div>
-          `;
-
-        }).join('');
+      el.innerHTML = `
+        <table class="pos-table">
+          <thead><tr><th>#</th><th>Particulars</th><th>Type</th><th class="num">Price</th><th class="num">Stock</th></tr></thead>
+          <tbody>
+          ${products.map((product, n) => {
+            const stock = safeNumber(product.stock_quantity, 0);
+            const isOut = stock <= 0;
+            const isLow = stock > 0 && stock <= LOW_STOCK_LIMIT;
+            return `<tr class="prow ${isOut ? 'out' : ''}" ${isOut ? '' : `data-product-id="${escapeHtml(String(product.id))}" onclick="addToCart(this.dataset.productId)"`}>
+              <td>${n + 1}</td>
+              <td><strong>${escapeHtml(product.name || 'Unnamed product')}</strong></td>
+              <td>${escapeHtml(product.category || '')}</td>
+              <td class="num">${safeNumber(product.price, 0).toLocaleString()}</td>
+              <td class="num" style="${isLow ? 'color:#b36b00;font-weight:700;' : ''}${isOut ? 'color:#c0392b;' : ''}">${isOut ? 'OUT' : stock}${isLow ? ' ⚠' : ''}</td>
+            </tr>`;
+          }).join('')}
+          </tbody>
+        </table>`;
     }
 
 
@@ -1589,85 +1507,28 @@
 
       } else {
 
-        el.innerHTML =
-          cart.map((item, i) => `
-
-            <div
-              style="
-                display:flex;
-                justify-content:space-between;
-                align-items:center;
-                gap:8px;
-                padding:6px 0;
-                border-bottom:1px solid var(--border);
-              "
-            >
-
-              <div>
-
-                <div
-                  style="
-                    font-weight:600;
-                    font-size:0.9rem;
-                  "
-                >
-                  ${escapeHtml(
-                    item.product.name
-                  )}
-                </div>
-
-                <div
-                  style="
-                    font-size:0.75rem;
-                    color:var(--muted);
-                  "
-                >
-                  Ksh <input type="number" min="0" step="1" value="${itemPrice(item)}"
-                    onchange="setLinePrice(${i}, this.value)"
-                    style="width:90px;padding:2px 6px;font-size:0.8rem;${itemPrice(item) !== safeNumber(item.product.price) ? 'border-color:#f0ad00;' : ''}"> each
-                    ${itemPrice(item) !== safeNumber(item.product.price) ? '<span style="color:#b36b00;">(list ' + safeNumber(item.product.price).toLocaleString() + ')</span>' : ''}
-                </div>
-
-              </div>
-
-
-              <div
-                style="
-                  display:flex;
-                  align-items:center;
-                  gap:8px;
-                "
-              >
-
-                <button
-                  type="button"
-                  class="secondary"
-                  style="padding:2px 8px;"
-                  onclick="changeQuantity(${i}, -1)"
-                >
-                  −
-                </button>
-
-
-                <span>
-                  ${item.quantity}
-                </span>
-
-
-                <button
-                  type="button"
-                  class="secondary"
-                  style="padding:2px 8px;"
-                  onclick="changeQuantity(${i}, 1)"
-                >
-                  +
-                </button>
-
-              </div>
-
-            </div>
-
-          `).join('');
+        el.innerHTML = `
+          <table class="pos-table">
+            <thead><tr><th>#</th><th>Particulars</th><th>Qty</th><th class="num">@</th><th class="num">Total</th><th></th></tr></thead>
+            <tbody>
+            ${cart.map((item, i) => {
+              const price = itemPrice(item);
+              const changed = price !== safeNumber(item.product.price);
+              return `<tr>
+                <td>${i + 1}</td>
+                <td><strong>${escapeHtml(item.product.name)}</strong>${changed ? `<div style="font-size:0.7rem;color:#b36b00;">list ${safeNumber(item.product.price).toLocaleString()}</div>` : ''}</td>
+                <td style="white-space:nowrap;">
+                  <button type="button" class="secondary" style="padding:1px 7px;" onclick="changeQuantity(${i}, -1)">−</button>
+                  <span style="display:inline-block;min-width:22px;text-align:center;">${item.quantity}</span>
+                  <button type="button" class="secondary" style="padding:1px 7px;" onclick="changeQuantity(${i}, 1)">+</button>
+                </td>
+                <td class="num"><input type="number" min="0" step="1" value="${price}" onchange="setLinePrice(${i}, this.value)" style="width:80px;padding:2px 6px;text-align:right;${changed ? 'border-color:#f0ad00;' : ''}"></td>
+                <td class="num"><strong>${(price * safeNumber(item.quantity)).toLocaleString()}</strong></td>
+                <td><button type="button" class="danger" style="padding:1px 7px;" title="Remove line" onclick="changeQuantity(${i}, -${item.quantity})">✕</button></td>
+              </tr>`;
+            }).join('')}
+            </tbody>
+          </table>`;
       }
 
 
@@ -2487,6 +2348,7 @@
         ).value.trim() || null;
 
 
+      const cashGot = parseFloat(document.getElementById('cash-received').value);
       if (paymentUi === 'cash') {
         const got = parseFloat(document.getElementById('cash-received').value);
         if (Number.isFinite(got) && got < total) {
@@ -2794,6 +2656,10 @@
 
           items:
             receiptItems,
+            cashier: currentStaff.full_name || '',
+            cashReceived: (paymentUi === 'cash' && Number.isFinite(cashGot)) ? cashGot : null,
+            receiptNo: insertedSale.receipt_no || null,
+
 
           subtotal,
 
@@ -2852,6 +2718,9 @@
 
             items:
               receiptItems,
+            cashier: currentStaff.full_name || '',
+            cashReceived: (paymentUi === 'cash' && Number.isFinite(cashGot)) ? cashGot : null,
+
 
             subtotal,
 
@@ -3012,6 +2881,8 @@
               }
             )}
           </span>
+          ${data.receiptNo ? `<br><span style="font-size:0.8rem;">Receipt No: ${escapeHtml('R' + String(data.receiptNo).padStart(6, '0'))}</span>` : ''}
+          ${data.cashier ? `<br><span style="font-size:0.8rem;">Served by: ${escapeHtml(data.cashier)}</span>` : ''}
 
         </div>
 
@@ -3099,6 +2970,7 @@
         </div>
 
 
+        ${data.cashReceived != null ? `<div style="display:flex;justify-content:space-between;margin-top:6px;"><span>Cash</span><span>Ksh ${Number(data.cashReceived).toLocaleString()}</span></div><div style="display:flex;justify-content:space-between;"><span>Change</span><span>Ksh ${Math.max(0, data.cashReceived - data.total).toLocaleString()}</span></div>` : ''}
         <div
           style="
             margin-top:8px;
@@ -3263,13 +3135,9 @@
           </title>
 
           <style>
-
-            body {
-              font-family:'Courier New',monospace;
-              font-size:13px;
-              padding:20px;
-            }
-
+            @page { size: 80mm auto; margin: 0; }
+            :root { --muted:#000; --border:#000; --gold:#000; }
+            body { font-family:'Courier New',monospace; font-size:12px; width:72mm; margin:0 auto; padding:3mm; color:#000; }
           </style>
 
         </head>
