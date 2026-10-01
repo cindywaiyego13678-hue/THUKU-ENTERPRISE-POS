@@ -324,6 +324,29 @@
         </div>
 
 
+        <!-- BACKDATE (admin only) -->
+        <div
+          class="field"
+          id="sale-date-field"
+          style="margin-top:14px; display:none;"
+        >
+
+          <label for="sale-date">
+            Sale date &amp; time (leave empty for now)
+          </label>
+
+          <input
+            type="datetime-local"
+            id="sale-date"
+          >
+
+          <small style="opacity:.7;">
+            Use this to record a past sale on the day it really happened.
+          </small>
+
+        </div>
+
+
         <!-- CUSTOMER -->
         <div
           class="field"
@@ -893,6 +916,33 @@
 
 
         renderNav(currentStaff.role);
+
+
+        /*
+         * Backdating is admin-only.
+         */
+        if (currentStaff.role === 'admin') {
+
+          const saleDateField =
+            document.getElementById('sale-date-field');
+
+          const saleDateInput =
+            document.getElementById('sale-date');
+
+          if (saleDateField && saleDateInput) {
+
+            const now = new Date();
+
+            now.setMinutes(
+              now.getMinutes() - now.getTimezoneOffset()
+            );
+
+            saleDateInput.max =
+              now.toISOString().slice(0, 16);
+
+            saleDateField.style.display = 'block';
+          }
+        }
 
 
         /*
@@ -1762,6 +1812,14 @@
       ).value = '';
 
 
+      const saleDateEl =
+        document.getElementById('sale-date');
+
+      if (saleDateEl) {
+        saleDateEl.value = '';
+      }
+
+
       renderCart();
     }
 
@@ -2354,6 +2412,39 @@
         ).value.trim() || null;
 
 
+      /*
+       * Optional backdated sale time (admin only).
+       */
+      let saleDate = null;
+
+      const saleDateRaw =
+        currentStaff.role === 'admin'
+          ? (document.getElementById('sale-date')?.value || '')
+          : '';
+
+      if (saleDateRaw) {
+
+        const parsed = new Date(saleDateRaw);
+
+        if (isNaN(parsed.getTime())) {
+          errorEl.textContent = 'The sale date is not valid.';
+          errorEl.style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = 'Complete Sale';
+          return;
+        }
+
+        if (parsed.getTime() > Date.now()) {
+          errorEl.textContent = 'The sale date cannot be in the future.';
+          errorEl.style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = 'Complete Sale';
+          return;
+        }
+
+        saleDate = parsed;
+      }
+
       const cashGot = parseFloat(document.getElementById('cash-received').value);
       if (paymentUi === 'cash') {
         const got = parseFloat(document.getElementById('cash-received').value);
@@ -2466,6 +2557,10 @@
 
         status:
           saleStatus,
+
+        ...(saleDate
+          ? { created_at: saleDate.toISOString() }
+          : {}),
 
         ...(mpesaReceipt
           ? { mpesa_receipt: mpesaReceipt }
@@ -2684,7 +2779,7 @@
           customerPhone,
 
           date:
-            new Date()
+            saleDate || new Date()
 
         });
 
@@ -2743,7 +2838,7 @@
             customerPhone,
 
             date:
-              new Date(),
+              saleDate || new Date(),
 
             offline:
               true
