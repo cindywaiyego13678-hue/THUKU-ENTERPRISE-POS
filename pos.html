@@ -72,9 +72,7 @@
       ======================================================== -->
       <div class="card">
 
-        <!-- ======================================================
-             LOW STOCK ALERT
-        ====================================================== -->
+        <!-- LOW STOCK ALERT -->
         <div
           id="low-stock-banner"
           role="alert"
@@ -98,11 +96,7 @@
         <!-- DEPARTMENT TABS -->
         <div
           id="dept-tabs"
-          style="
-            display:flex;
-            gap:8px;
-            margin-bottom:12px;
-          "
+          style="display:flex; gap:8px; margin-bottom:12px;"
         >
 
           <button
@@ -164,9 +158,7 @@
 
 
         <!-- PRODUCT LIST -->
-        <div
-          id="product-list"
-        ></div>
+        <div id="product-list"></div>
 
       </div>
 
@@ -176,13 +168,7 @@
       ======================================================== -->
       <div class="card">
 
-        <div
-          style="
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
-          "
-        >
+        <div style="display:flex; justify-content:space-between; align-items:center;">
 
           <h3 style="margin:0;">
             Current Sale
@@ -205,10 +191,7 @@
 
 
         <!-- DISCOUNT / MARKUP -->
-        <div
-          class="grid grid-2"
-          style="margin-top:10px;"
-        >
+        <div class="grid grid-2" style="margin-top:10px;">
 
           <div class="field">
 
@@ -248,75 +231,33 @@
         </div>
 
 
-        <p
-          style="
-            font-size:0.75rem;
-            color:var(--muted);
-            margin-top:-8px;
-          "
-        >
+        <p style="font-size:0.75rem; color:var(--muted); margin-top:-8px;">
           Use Discount if selling below listed price,
           or Markup if selling above it.
+          Editing a line price is also recorded automatically
+          as a discount or markup in the reports.
         </p>
 
 
         <!-- TOTALS -->
-        <div
-          style="
-            border-top:1px solid var(--border);
-            margin-top:10px;
-            padding-top:10px;
-          "
-        >
+        <div style="border-top:1px solid var(--border); margin-top:10px; padding-top:10px;">
 
-          <div
-            style="
-              display:flex;
-              justify-content:space-between;
-              font-size:0.9rem;
-              color:var(--muted);
-            "
-          >
+          <div style="display:flex; justify-content:space-between; font-size:0.9rem; color:var(--muted);">
             <span>Subtotal</span>
             <span id="cart-subtotal">Ksh 0</span>
           </div>
 
-
-          <div
-            style="
-              display:flex;
-              justify-content:space-between;
-              font-size:0.9rem;
-              color:var(--muted);
-            "
-          >
+          <div style="display:flex; justify-content:space-between; font-size:0.9rem; color:var(--muted);">
             <span>Discount</span>
             <span id="cart-discount">− Ksh 0</span>
           </div>
 
-
-          <div
-            style="
-              display:flex;
-              justify-content:space-between;
-              font-size:0.9rem;
-              color:var(--muted);
-            "
-          >
+          <div style="display:flex; justify-content:space-between; font-size:0.9rem; color:var(--muted);">
             <span>Markup</span>
             <span id="cart-markup">+ Ksh 0</span>
           </div>
 
-
-          <div
-            style="
-              display:flex;
-              justify-content:space-between;
-              font-weight:700;
-              font-size:1.1rem;
-              margin-top:4px;
-            "
-          >
+          <div style="display:flex; justify-content:space-between; font-weight:700; font-size:1.1rem; margin-top:4px;">
             <span>Total</span>
             <span id="cart-total">Ksh 0</span>
           </div>
@@ -335,10 +276,7 @@
             Sale date &amp; time (leave empty for now)
           </label>
 
-          <input
-            type="datetime-local"
-            id="sale-date"
-          >
+          <input type="datetime-local" id="sale-date">
 
           <small style="opacity:.7;">
             Use this to record a past sale on the day it really happened.
@@ -348,10 +286,7 @@
 
 
         <!-- CUSTOMER -->
-        <div
-          class="field"
-          style="margin-top:14px;"
-        >
+        <div class="field" style="margin-top:14px;">
 
           <label for="customer-name">
             Customer name (optional)
@@ -420,30 +355,17 @@
         </button>
 
 
-        <p
-          class="error-text"
-          id="checkout-error"
-          style="display:none;"
-        ></p>
+        <p class="error-text" id="checkout-error" style="display:none;"></p>
 
 
         <!-- HELD SALES -->
-        <div
-          style="
-            border-top:1px solid var(--border);
-            margin-top:14px;
-            padding-top:14px;
-          "
-        >
+        <div style="border-top:1px solid var(--border); margin-top:14px; padding-top:14px;">
 
           <h3 style="margin:0;">
             Held Sales
           </h3>
 
-          <div
-            id="held-sales-list"
-            style="margin-top:8px;"
-          ></div>
+          <div id="held-sales-list" style="margin-top:8px;"></div>
 
         </div>
 
@@ -459,13 +381,7 @@
 
   <div
     id="receipt-overlay"
-    style="
-      display:none;
-      position:fixed;
-      inset:0;
-      background:rgba(0,0,0,0.5);
-      z-index:60;
-    "
+    style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:60;"
     onclick="closeReceipt()"
   ></div>
 
@@ -489,36 +405,17 @@
 
     <div
       id="receipt-content"
-      style="
-        font-family:'Courier New',monospace;
-        font-size:0.85rem;
-        line-height:1.5;
-      "
+      style="font-family:'Courier New',monospace; font-size:0.85rem; line-height:1.5;"
     ></div>
 
 
-    <div
-      style="
-        display:flex;
-        gap:8px;
-        margin-top:16px;
-      "
-    >
+    <div style="display:flex; gap:8px; margin-top:16px;">
 
-      <button
-        type="button"
-        style="flex:1;"
-        onclick="printReceipt()"
-      >
+      <button type="button" style="flex:1;" onclick="printReceipt()">
         🖨️ Print
       </button>
 
-      <button
-        type="button"
-        class="gold"
-        style="flex:1;"
-        onclick="shareReceiptWhatsapp()"
-      >
+      <button type="button" class="gold" style="flex:1;" onclick="shareReceiptWhatsapp()">
         📱 WhatsApp
       </button>
 
@@ -594,13 +491,9 @@
     let lastReceiptData = null;
     let deptFilter = '';
 
-    const HELD_SALES_KEY =
-      'appliance_pos_held_sales';
+    const HELD_SALES_KEY = 'appliance_pos_held_sales';
 
-    /*
-     * IMPORTANT:
-     * Products with stock AT OR BELOW 5 are considered low stock.
-     */
+    /* Products with stock AT OR BELOW 5 are considered low stock. */
     const LOW_STOCK_LIMIT = 5;
 
 
@@ -609,12 +502,8 @@
     ============================================================ */
 
     function safeNumber(value, fallback = 0) {
-
       const number = Number(value);
-
-      return Number.isFinite(number)
-        ? number
-        : fallback;
+      return Number.isFinite(number) ? number : fallback;
     }
 
 
@@ -628,9 +517,7 @@
 
       document
         .querySelectorAll('.dept-tab')
-        .forEach(btn => {
-          btn.classList.remove('active');
-        });
+        .forEach(btn => btn.classList.remove('active'));
 
       if (btnEl) {
         btnEl.classList.add('active');
@@ -642,42 +529,22 @@
 
     function applyProductFilters() {
 
-      const searchInput =
-        document.getElementById('product-search');
+      const searchInput = document.getElementById('product-search');
 
-      const q =
-        String(searchInput?.value || '')
-          .toLowerCase()
-          .trim();
-
+      const q = String(searchInput?.value || '').toLowerCase().trim();
 
       const filtered =
         allProducts.filter(product => {
 
-          const productDepartment =
-            String(product.department || '').trim();
-
+          const productDepartment = String(product.department || '').trim();
 
           const matchesDept =
             !deptFilter ||
-            productDepartment ===
-              String(deptFilter).trim();
+            productDepartment === String(deptFilter).trim();
 
-
-          const productName =
-            String(product.name || '')
-              .toLowerCase();
-
-
-          const category =
-            String(product.category || '')
-              .toLowerCase();
-
-
-          const barcode =
-            String(product.barcode || '')
-              .toLowerCase();
-
+          const productName = String(product.name || '').toLowerCase();
+          const category = String(product.category || '').toLowerCase();
+          const barcode = String(product.barcode || '').toLowerCase();
 
           const matchesSearch =
             !q ||
@@ -685,18 +552,12 @@
             category.includes(q) ||
             barcode.includes(q);
 
-
           return matchesDept && matchesSearch;
         });
 
-
       renderProductList(filtered);
 
-      /*
-       * IMPORTANT:
-       * Always refresh the low-stock message whenever
-       * the product list is refreshed.
-       */
+      /* Always refresh the low-stock message when the list refreshes. */
       updateLowStockBanner();
     }
 
@@ -707,176 +568,80 @@
 
     function updateLowStockBanner() {
 
-      const banner =
-        document.getElementById(
-          'low-stock-banner'
-        );
-
+      const banner = document.getElementById('low-stock-banner');
 
       if (!banner) {
         return;
       }
 
-
-      /*
-       * ONLY use stock_quantity.
-       *
-       * Any product with:
-       * 5, 4, 3, 2, 1 or 0
-       * will trigger the alert.
-       */
+      /* ONLY use stock_quantity: 5, 4, 3, 2, 1 or 0 triggers the alert. */
       const lowItems =
         allProducts.filter(product => {
-
-          const stock =
-            Number(product.stock_quantity);
-
-          return (
-            Number.isFinite(stock) &&
-            stock <= LOW_STOCK_LIMIT
-          );
+          const stock = Number(product.stock_quantity);
+          return Number.isFinite(stock) && stock <= LOW_STOCK_LIMIT;
         });
 
-
-      /*
-       * No low-stock products.
-       */
       if (lowItems.length === 0) {
-
         banner.style.display = 'none';
         banner.innerHTML = '';
-
         return;
       }
 
-
-      /*
-       * Separate out-of-stock products.
-       */
       const outOfStock =
-        lowItems.filter(product =>
-          safeNumber(
-            product.stock_quantity,
-            0
-          ) <= 0
-        );
+        lowItems.filter(product => safeNumber(product.stock_quantity, 0) <= 0);
 
-
-      /*
-       * Products that are low but still have stock.
-       */
       const lowButAvailable =
-        lowItems.filter(product =>
-          safeNumber(
-            product.stock_quantity,
-            0
-          ) > 0
-        );
-
+        lowItems.filter(product => safeNumber(product.stock_quantity, 0) > 0);
 
       let html = `
-        <div style="
-          font-size:1rem;
-          font-weight:800;
-          margin-bottom:6px;
-        ">
+        <div style="font-size:1rem; font-weight:800; margin-bottom:6px;">
           ⚠️ LOW STOCK ALERT
         </div>
 
-        <div style="
-          font-size:0.85rem;
-          margin-bottom:8px;
-        ">
+        <div style="font-size:0.85rem; margin-bottom:8px;">
           Please inform the owner about these products:
         </div>
       `;
 
-
-      /*
-       * Low stock products.
-       */
       if (lowButAvailable.length) {
 
         html += `
-          <div style="
-            margin-bottom:5px;
-          ">
+          <div style="margin-bottom:5px;">
             <strong>Low stock:</strong>
             ${lowButAvailable
               .map(product => {
 
-                const name =
-                  escapeHtml(
-                    product.name ||
-                    'Unnamed product'
-                  );
-
-                const stock =
-                  safeNumber(
-                    product.stock_quantity,
-                    0
-                  );
+                const name = escapeHtml(product.name || 'Unnamed product');
+                const stock = safeNumber(product.stock_quantity, 0);
 
                 return `
-                  <span style="
-                    display:inline-block;
-                    margin:2px 4px 2px 0;
-                    padding:2px 7px;
-                    background:#ffe08a;
-                    border-radius:5px;
-                  ">
+                  <span style="display:inline-block; margin:2px 4px 2px 0; padding:2px 7px; background:#ffe08a; border-radius:5px;">
                     ${name} (${stock} left)
                   </span>
                 `;
-
               })
               .join('')}
           </div>
         `;
       }
 
-
-      /*
-       * Out of stock products.
-       */
       if (outOfStock.length) {
 
         html += `
-          <div style="
-            margin-top:6px;
-            color:#b42318;
-          ">
+          <div style="margin-top:6px; color:#b42318;">
             <strong>❌ Out of stock:</strong>
             ${outOfStock
-              .map(product => {
-
-                return `
-                  <span style="
-                    display:inline-block;
-                    margin:2px 4px 2px 0;
-                    padding:2px 7px;
-                    background:#ffd6d6;
-                    border-radius:5px;
-                  ">
-                    ${escapeHtml(
-                      product.name ||
-                      'Unnamed product'
-                    )}
-                  </span>
-                `;
-
-              })
+              .map(product => `
+                <span style="display:inline-block; margin:2px 4px 2px 0; padding:2px 7px; background:#ffd6d6; border-radius:5px;">
+                  ${escapeHtml(product.name || 'Unnamed product')}
+                </span>
+              `)
               .join('')}
           </div>
         `;
       }
 
-
-      /*
-       * Show banner.
-       */
       banner.innerHTML = html;
-
       banner.style.display = 'block';
     }
 
@@ -889,87 +654,50 @@
 
       try {
 
-        currentStaff =
-          await requireAuth([
-            'admin',
-            'manager',
-            'cashier'
-          ]);
-
+        currentStaff = await requireAuth(['admin', 'manager', 'cashier']);
 
         if (!currentStaff) {
           return;
         }
 
-
-        const staffName =
-          document.getElementById(
-            'staff-name'
-          );
-
+        const staffName = document.getElementById('staff-name');
 
         if (staffName) {
-
           staffName.textContent =
             `${currentStaff.full_name || 'Staff'} (${currentStaff.role})`;
         }
 
-
         renderNav(currentStaff.role);
 
-
-        /*
-         * Backdating is admin-only.
-         */
+        /* Backdating is admin-only. */
         if (currentStaff.role === 'admin') {
 
-          const saleDateField =
-            document.getElementById('sale-date-field');
-
-          const saleDateInput =
-            document.getElementById('sale-date');
+          const saleDateField = document.getElementById('sale-date-field');
+          const saleDateInput = document.getElementById('sale-date');
 
           if (saleDateField && saleDateInput) {
 
             const now = new Date();
 
-            now.setMinutes(
-              now.getMinutes() - now.getTimezoneOffset()
-            );
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
 
-            saleDateInput.max =
-              now.toISOString().slice(0, 16);
+            saleDateInput.max = now.toISOString().slice(0, 16);
 
             saleDateField.style.display = 'block';
           }
         }
 
+        /* Department-locked staff. */
+        if (currentStaff.role !== 'admin' && currentStaff.department) {
 
-        /*
-         * Department-locked staff.
-         */
-        if (
-          currentStaff.role !== 'admin' &&
-          currentStaff.department
-        ) {
-
-          const deptTabs =
-            document.getElementById(
-              'dept-tabs'
-            );
-
+          const deptTabs = document.getElementById('dept-tabs');
 
           if (deptTabs) {
             deptTabs.style.display = 'none';
           }
 
-
-          deptFilter =
-            String(
-              currentStaff.department
-            ).trim();
+          deptFilter = String(currentStaff.department).trim();
         }
-
 
         await loadProducts();
 
@@ -977,18 +705,11 @@
 
         renderCart();
 
-        /*
-         * Final low-stock check after
-         * everything has loaded.
-         */
         updateLowStockBanner();
 
       } catch (error) {
 
-        console.error(
-          'POS initialization failed:',
-          error
-        );
+        console.error('POS initialization failed:', error);
 
       }
 
@@ -1002,56 +723,30 @@
     function renderNav(role) {
 
       const tabs = [
-        {
-          href: 'pos.html',
-          label: 'POS'
-        }
+        { href: 'pos.html', label: 'POS' }
       ];
-
 
       if (role === 'admin') {
 
         tabs.push(
-          {
-            href: 'inventory.html',
-            label: 'Inventory'
-          },
-          {
-            href: 'dashboard.html',
-            label: 'Dashboard'
-          },
-          {
-            href: 'staff.html',
-            label: 'Staff'
-          },
-          {
-            href: 'reports.html',
-            label: 'Reports'
-          }
+          { href: 'inventory.html', label: 'Inventory' },
+          { href: 'dashboard.html', label: 'Dashboard' },
+          { href: 'staff.html', label: 'Staff' },
+          { href: 'reports.html', label: 'Reports' }
         );
       }
 
-
-      const nav =
-        document.getElementById(
-          'nav-tabs'
-        );
-
+      const nav = document.getElementById('nav-tabs');
 
       if (!nav) {
         return;
       }
 
-
       nav.innerHTML =
         tabs.map(tab => `
           <a
             href="${escapeHtml(tab.href)}"
-            class="${
-              tab.href === 'pos.html'
-                ? 'active'
-                : ''
-            }"
+            class="${tab.href === 'pos.html' ? 'active' : ''}"
           >
             ${escapeHtml(tab.label)}
           </a>
@@ -1065,27 +760,16 @@
 
     async function loadProducts() {
 
-      /*
-       * Offline mode.
-       */
+      /* Offline mode. */
       if (!navigator.onLine) {
 
-        const cached =
-          cacheGet('products_list');
-
+        const cached = cacheGet('products_list');
 
         if (cached) {
 
-          allProducts =
-            Array.isArray(cached.data)
-              ? cached.data
-              : [];
+          allProducts = Array.isArray(cached.data) ? cached.data : [];
 
-
-          showOfflineBanner(
-            cached.cachedAt
-          );
-
+          showOfflineBanner(cached.cachedAt);
 
           applyProductFilters();
 
@@ -1095,80 +779,44 @@
         return;
       }
 
-
       try {
 
-        const {
-          data,
-          error
-        } =
+        const { data, error } =
           await supabaseClient
             .from('products')
             .select('*')
             .eq('is_active', true)
             .order('name');
 
-
         if (error) {
           throw error;
         }
 
-
         hideOfflineBanner();
 
+        allProducts = Array.isArray(data) ? data : [];
 
-        allProducts =
-          Array.isArray(data)
-            ? data
-            : [];
+        console.log('POS products loaded:', allProducts);
 
+        /* Save latest product data. */
+        cacheSet('products_list', allProducts);
 
-        console.log(
-          'POS products loaded:',
-          allProducts
-        );
-
-
-        /*
-         * Save latest product data.
-         */
-        cacheSet(
-          'products_list',
-          allProducts
-        );
-
-
-        /*
-         * Render products and LOW STOCK alert.
-         */
+        /* Render products and LOW STOCK alert. */
         applyProductFilters();
 
         updateLowStockBanner();
 
       } catch (error) {
 
-        console.error(
-          'Product loading failed:',
-          error
-        );
+        console.error('Product loading failed:', error);
 
-
-        const cached =
-          cacheGet('products_list');
-
+        const cached = cacheGet('products_list');
 
         if (cached) {
 
-          allProducts =
-            Array.isArray(cached.data)
-              ? cached.data
-              : [];
+          allProducts = Array.isArray(cached.data) ? cached.data : [];
 
-
-          showOfflineBanner(
-            cached.cachedAt
-          );
-
+          showOfflineBanner(cached.cachedAt);
 
           applyProductFilters();
 
@@ -1176,10 +824,7 @@
 
         } else {
 
-          /*
-           * Make sure the alert is hidden
-           * if there is no product data.
-           */
+          /* Make sure the alert is hidden if there is no product data. */
           allProducts = [];
 
           applyProductFilters();
@@ -1195,25 +840,16 @@
 
     function renderProductList(products) {
 
-      const el =
-        document.getElementById(
-          'product-list'
-        );
-
+      const el = document.getElementById('product-list');
 
       if (!el) {
         return;
       }
 
-
       if (!products.length) {
-
-        el.innerHTML =
-          '<div class="empty-state">No products found.</div>';
-
+        el.innerHTML = '<div class="empty-state">No products found.</div>';
         return;
       }
-
 
       el.innerHTML = `
         <table class="pos-table">
@@ -1242,17 +878,16 @@
 
     document
       .getElementById('product-search')
-      .addEventListener(
-        'input',
-        applyProductFilters
-      );
+      .addEventListener('input', applyProductFilters);
 
 
     /* ============================================================
        BARCODE SCANNING
        - USB / Bluetooth scanners: just scan (works when the page
          or the search box has focus)
-       - Phone camera: "📷 Scan" button (stays open for several items)
+       - Phone camera: "📷 Scan" button. The camera now CLOSES
+         automatically after each successful scan, so the cashier
+         can tap Scan again for the next product.
     ============================================================ */
 
     function cartQtyTotal() {
@@ -1264,8 +899,7 @@
 
     function handleScannedCode(rawCode) {
 
-      const code =
-        String(rawCode || '').trim().toLowerCase();
+      const code = String(rawCode || '').trim().toLowerCase();
 
       if (!code) {
         return false;
@@ -1282,10 +916,7 @@
 
         Scanner.beep(false);
 
-        Scanner.toast(
-          `No product with barcode ${rawCode}`,
-          'error'
-        );
+        Scanner.toast(`No product with barcode ${rawCode}`, 'error');
 
         return false;
       }
@@ -1312,8 +943,8 @@
     function openCameraScanner() {
 
       Scanner.openCamera({
-        title: 'Scan items to add to sale',
-        continuous: true,
+        title: 'Scan item to add to sale',
+        continuous: false,   // close the camera after one successful scan
         onCode: handleScannedCode
       });
     }
@@ -1331,79 +962,40 @@
 
     function addToCart(productId) {
 
-      console.log(
-        'Add clicked:',
-        productId
-      );
-
+      console.log('Add clicked:', productId);
 
       const product =
-        allProducts.find(
-          p =>
-            String(p.id) ===
-            String(productId)
-        );
-
+        allProducts.find(p => String(p.id) === String(productId));
 
       if (!product) {
 
-        console.error(
-          'Product not found:',
-          productId
-        );
+        console.error('Product not found:', productId);
 
-
-        alert(
-          'Unable to add this product. Please refresh the POS.'
-        );
-
+        alert('Unable to add this product. Please refresh the POS.');
 
         return;
       }
 
-
-      const stock =
-        safeNumber(
-          product.stock_quantity,
-          0
-        );
-
+      const stock = safeNumber(product.stock_quantity, 0);
 
       if (stock <= 0) {
 
-        alert(
-          `❌ ${product.name} is out of stock.`
-        );
-
+        alert(`❌ ${product.name} is out of stock.`);
 
         return;
       }
 
-
       const existing =
-        cart.find(
-          item =>
-            String(item.product.id) ===
-            String(productId)
-        );
+        cart.find(item => String(item.product.id) === String(productId));
 
-
-      const currentCartQty =
-        existing
-          ? safeNumber(existing.quantity)
-          : 0;
-
+      const currentCartQty = existing ? safeNumber(existing.quantity) : 0;
 
       if (currentCartQty >= stock) {
 
-        alert(
-          `Not enough stock available. Only ${stock} item(s) left.`
-        );
-
+        alert(`Not enough stock available. Only ${stock} item(s) left.`);
 
         return;
       }
-
 
       if (existing) {
 
@@ -1411,13 +1003,9 @@
 
       } else {
 
-        cart.push({
-          product,
-          quantity: 1
-        });
+        cart.push({ product, quantity: 1 });
 
       }
-
 
       renderCart();
     }
@@ -1429,19 +1017,13 @@
 
     function changeQuantity(index, delta) {
 
-      const item =
-        cart[index];
-
+      const item = cart[index];
 
       if (!item) {
         return;
       }
 
-
-      const newQty =
-        safeNumber(item.quantity) +
-        safeNumber(delta);
-
+      const newQty = safeNumber(item.quantity) + safeNumber(delta);
 
       if (newQty <= 0) {
 
@@ -1452,28 +1034,16 @@
         return;
       }
 
-
-      const stock =
-        safeNumber(
-          item.product.stock_quantity,
-          0
-        );
-
+      const stock = safeNumber(item.product.stock_quantity, 0);
 
       if (newQty > stock) {
 
-        alert(
-          `Not enough stock available. Only ${stock} item(s) left.`
-        );
-
+        alert(`Not enough stock available. Only ${stock} item(s) left.`);
 
         return;
       }
 
-
-      item.quantity =
-        newQty;
-
+      item.quantity = newQty;
 
       renderCart();
     }
@@ -1503,39 +1073,21 @@
 
     function getDiscount() {
 
-      const input =
-        document.getElementById(
-          'discount-amount'
-        );
+      const input = document.getElementById('discount-amount');
 
+      const value = parseFloat(input?.value);
 
-      const value =
-        parseFloat(input?.value);
-
-
-      return Number.isFinite(value) &&
-        value >= 0
-        ? value
-        : 0;
+      return Number.isFinite(value) && value >= 0 ? value : 0;
     }
 
 
     function getMarkup() {
 
-      const input =
-        document.getElementById(
-          'markup-amount'
-        );
+      const input = document.getElementById('markup-amount');
 
+      const value = parseFloat(input?.value);
 
-      const value =
-        parseFloat(input?.value);
-
-
-      return Number.isFinite(value) &&
-        value >= 0
-        ? value
-        : 0;
+      return Number.isFinite(value) && value >= 0 ? value : 0;
     }
 
 
@@ -1545,21 +1097,15 @@
 
     function renderCart() {
 
-      const el =
-        document.getElementById(
-          'cart-items'
-        );
-
+      const el = document.getElementById('cart-items');
 
       if (!el) {
         return;
       }
 
-
       if (!cart.length) {
 
-        el.innerHTML =
-          '<div class="empty-state">Cart is empty</div>';
+        el.innerHTML = '<div class="empty-state">Cart is empty</div>';
 
       } else {
 
@@ -1569,10 +1115,12 @@
             <tbody>
             ${cart.map((item, i) => {
               const price = itemPrice(item);
-              const changed = price !== safeNumber(item.product.price);
+              const listPrice = safeNumber(item.product.price);
+              const changed = price !== listPrice;
+              const tag = !changed ? '' : (price > listPrice ? 'markup' : 'discount');
               return `<tr>
                 <td>${i + 1}</td>
-                <td><strong>${escapeHtml(item.product.name)}</strong>${changed ? `<div style="font-size:0.7rem;color:#b36b00;">list ${safeNumber(item.product.price).toLocaleString()}</div>` : ''}</td>
+                <td><strong>${escapeHtml(item.product.name)}</strong>${changed ? `<div style="font-size:0.7rem;color:#b36b00;">list ${listPrice.toLocaleString()} · ${tag}</div>` : ''}</td>
                 <td style="white-space:nowrap;">
                   <button type="button" class="secondary" style="padding:1px 7px;" onclick="changeQuantity(${i}, -1)">−</button>
                   <span style="display:inline-block;min-width:22px;text-align:center;">${item.quantity}</span>
@@ -1586,7 +1134,6 @@
             </tbody>
           </table>`;
       }
-
 
       updateTotals();
     }
@@ -1610,70 +1157,38 @@
 
     function updateTotals() {
 
-      const subtotal =
-        getSubtotal();
+      const subtotal = getSubtotal();
 
+      const discount = Math.min(getDiscount(), subtotal);
 
-      const discount =
-        Math.min(
-          getDiscount(),
-          subtotal
-        );
+      const markup = getMarkup();
 
+      const total = Math.max(0, subtotal - discount + markup);
 
-      const markup =
-        getMarkup();
-
-
-      const total =
-        Math.max(
-          0,
-          subtotal -
-          discount +
-          markup
-        );
-
-
-      document.getElementById(
-        'cart-subtotal'
-      ).textContent =
+      document.getElementById('cart-subtotal').textContent =
         `Ksh ${subtotal.toLocaleString()}`;
 
-
-      document.getElementById(
-        'cart-discount'
-      ).textContent =
+      document.getElementById('cart-discount').textContent =
         `− Ksh ${discount.toLocaleString()}`;
 
-
-      document.getElementById(
-        'cart-markup'
-      ).textContent =
+      document.getElementById('cart-markup').textContent =
         `+ Ksh ${markup.toLocaleString()}`;
 
-
-      document.getElementById(
-        'cart-total'
-      ).textContent =
+      document.getElementById('cart-total').textContent =
         `Ksh ${total.toLocaleString()}`;
+
       updateChange(total);
     }
 
 
     document
       .getElementById('discount-amount')
-      .addEventListener(
-        'input',
-        updateTotals
-      );
+      .addEventListener('input', updateTotals);
 
 
     document
       .getElementById('markup-amount')
-      .addEventListener(
-        'input',
-        updateTotals
-      );
+      .addEventListener('input', updateTotals);
 
 
     /* ============================================================
@@ -1684,18 +1199,11 @@
 
       try {
 
-        return JSON.parse(
-          localStorage.getItem(
-            HELD_SALES_KEY
-          )
-        ) || [];
+        return JSON.parse(localStorage.getItem(HELD_SALES_KEY)) || [];
 
       } catch (error) {
 
-        console.error(
-          'Unable to read held sales:',
-          error
-        );
+        console.error('Unable to read held sales:', error);
 
         return [];
       }
@@ -1704,10 +1212,7 @@
 
     function saveHeldSales(list) {
 
-      localStorage.setItem(
-        HELD_SALES_KEY,
-        JSON.stringify(list)
-      );
+      localStorage.setItem(HELD_SALES_KEY, JSON.stringify(list));
     }
 
 
@@ -1715,19 +1220,12 @@
 
       if (!cart.length) {
 
-        alert(
-          'Cart is empty — nothing to hold.'
-        );
+        alert('Cart is empty — nothing to hold.');
 
         return;
       }
 
-
-      const customerName =
-        document.getElementById(
-          'customer-name'
-        ).value;
-
+      const customerName = document.getElementById('customer-name').value;
 
       const label =
         prompt(
@@ -1735,15 +1233,11 @@
           customerName || 'Held sale'
         );
 
-
       if (label === null) {
         return;
       }
 
-
-      const held =
-        getHeldSales();
-
+      const held = getHeldSales();
 
       held.push({
 
@@ -1758,25 +1252,17 @@
             price: item.price
           })),
 
-        discount:
-          getDiscount(),
+        discount: getDiscount(),
 
-        markup:
-          getMarkup(),
+        markup: getMarkup(),
 
-        customerName:
-          customerName,
+        customerName: customerName,
 
-        customerPhone:
-          document.getElementById(
-            'customer-phone'
-          ).value,
+        customerPhone: document.getElementById('customer-phone').value,
 
-        heldAt:
-          new Date().toISOString()
+        heldAt: new Date().toISOString()
 
       });
-
 
       saveHeldSales(held);
 
@@ -1789,36 +1275,23 @@
     function clearCurrentSale() {
 
       cart = [];
-      const cr = document.getElementById('cash-received'); if (cr) cr.value = '';
 
+      const cr = document.getElementById('cash-received');
+      if (cr) cr.value = '';
 
-      document.getElementById(
-        'discount-amount'
-      ).value = 0;
+      document.getElementById('discount-amount').value = 0;
 
+      document.getElementById('markup-amount').value = 0;
 
-      document.getElementById(
-        'markup-amount'
-      ).value = 0;
+      document.getElementById('customer-name').value = '';
 
+      document.getElementById('customer-phone').value = '';
 
-      document.getElementById(
-        'customer-name'
-      ).value = '';
-
-
-      document.getElementById(
-        'customer-phone'
-      ).value = '';
-
-
-      const saleDateEl =
-        document.getElementById('sale-date');
+      const saleDateEl = document.getElementById('sale-date');
 
       if (saleDateEl) {
         saleDateEl.value = '';
       }
-
 
       renderCart();
     }
@@ -1826,20 +1299,13 @@
 
     function renderHeldSales() {
 
-      const held =
-        getHeldSales();
+      const held = getHeldSales();
 
-
-      const el =
-        document.getElementById(
-          'held-sales-list'
-        );
-
+      const el = document.getElementById('held-sales-list');
 
       if (!el) {
         return;
       }
-
 
       if (!held.length) {
 
@@ -1848,7 +1314,6 @@
 
         return;
       }
-
 
       el.innerHTML =
         held.map(h => `
@@ -1867,51 +1332,30 @@
 
             <div>
 
-              <strong>
-                ${escapeHtml(
-                  h.label
-                )}
-              </strong>
+              <strong>${escapeHtml(h.label)}</strong>
 
-              <div
-                style="
-                  color:var(--muted);
-                  font-size:0.75rem;
-                "
-              >
+              <div style="color:var(--muted); font-size:0.75rem;">
                 ${h.cart.length} item(s)
               </div>
 
             </div>
 
 
-            <div
-              style="
-                display:flex;
-                gap:6px;
-              "
-            >
+            <div style="display:flex; gap:6px;">
 
               <button
                 type="button"
                 class="secondary"
-                style="
-                  padding:4px 8px;
-                  font-size:0.75rem;
-                "
+                style="padding:4px 8px; font-size:0.75rem;"
                 onclick="resumeSale(${h.id})"
               >
                 Resume
               </button>
 
-
               <button
                 type="button"
                 class="danger"
-                style="
-                  padding:4px 8px;
-                  font-size:0.75rem;
-                "
+                style="padding:4px 8px; font-size:0.75rem;"
                 onclick="discardHeldSale(${h.id})"
               >
                 ✕
@@ -1929,105 +1373,52 @@
 
       if (
         cart.length &&
-        !confirm(
-          'This will replace your current cart. Continue?'
-        )
+        !confirm('This will replace your current cart. Continue?')
       ) {
         return;
       }
 
+      const held = getHeldSales();
 
-      const held =
-        getHeldSales();
-
-
-      const entry =
-        held.find(
-          h =>
-            Number(h.id) ===
-            Number(holdId)
-        );
-
+      const entry = held.find(h => Number(h.id) === Number(holdId));
 
       if (!entry) {
         return;
       }
-
 
       cart =
         entry.cart
           .map(ci => {
 
             const product =
-              allProducts.find(
-                p =>
-                  String(p.id) ===
-                  String(ci.productId)
-              );
-
+              allProducts.find(p => String(p.id) === String(ci.productId));
 
             if (!product) {
               return null;
             }
 
+            const stock = safeNumber(product.stock_quantity, 0);
 
-            const stock =
-              safeNumber(
-                product.stock_quantity,
-                0
-              );
-
-
-            const quantity =
-              Math.min(
-                safeNumber(ci.quantity, 1),
-                stock
-              );
-
+            const quantity = Math.min(safeNumber(ci.quantity, 1), stock);
 
             if (quantity <= 0) {
               return null;
             }
-
 
             return { product, quantity, price: ci.price };
 
           })
           .filter(Boolean);
 
+      document.getElementById('discount-amount').value = entry.discount || 0;
 
-      document.getElementById(
-        'discount-amount'
-      ).value =
-        entry.discount || 0;
+      document.getElementById('markup-amount').value = entry.markup || 0;
 
+      document.getElementById('customer-name').value = entry.customerName || '';
 
-      document.getElementById(
-        'markup-amount'
-      ).value =
-        entry.markup || 0;
+      document.getElementById('customer-phone').value = entry.customerPhone || '';
 
-
-      document.getElementById(
-        'customer-name'
-      ).value =
-        entry.customerName || '';
-
-
-      document.getElementById(
-        'customer-phone'
-      ).value =
-        entry.customerPhone || '';
-
-
-      saveHeldSales(
-        held.filter(
-          h =>
-            Number(h.id) !==
-            Number(holdId)
-        )
-      );
-
+      saveHeldSales(held.filter(h => Number(h.id) !== Number(holdId)));
 
       renderCart();
 
@@ -2037,31 +1428,16 @@
 
     function discardHeldSale(holdId) {
 
-      if (
-        !confirm(
-          'Discard this held sale?'
-        )
-      ) {
+      if (!confirm('Discard this held sale?')) {
         return;
       }
 
-
       saveHeldSales(
-        getHeldSales().filter(
-          h =>
-            Number(h.id) !==
-            Number(holdId)
-        )
+        getHeldSales().filter(h => Number(h.id) !== Number(holdId))
       );
-
 
       renderHeldSales();
     }
-
-
-    /* ============================================================
-       CHECKOUT
-    ============================================================ */
 
 
     /* ============================================================
@@ -2318,103 +1694,87 @@
     }
 
 
+    /* ============================================================
+       CHECKOUT
+    ============================================================ */
+
     async function checkout() {
 
-      const errorEl =
-        document.getElementById(
-          'checkout-error'
-        );
+      const errorEl = document.getElementById('checkout-error');
 
-
-      errorEl.style.display =
-        'none';
-
+      errorEl.style.display = 'none';
 
       if (!cart.length) {
 
-        errorEl.textContent =
-          'Cart is empty.';
+        errorEl.textContent = 'Cart is empty.';
 
-        errorEl.style.display =
-          'block';
+        errorEl.style.display = 'block';
 
         return;
       }
-
 
       if (!currentStaff?.id) {
 
         errorEl.textContent =
           'Staff session is not available. Please log in again.';
 
-        errorEl.style.display =
-          'block';
+        errorEl.style.display = 'block';
 
         return;
       }
 
-
-      const btn =
-        document.getElementById(
-          'checkout-btn'
-        );
-
+      const btn = document.getElementById('checkout-btn');
 
       btn.disabled = true;
 
-      btn.textContent =
-        'Processing...';
+      btn.textContent = 'Processing...';
 
+      const subtotal = getSubtotal();
 
-      const subtotal =
-        getSubtotal();
+      const discount = Math.min(getDiscount(), subtotal);
 
+      const markup = getMarkup();
 
-      const discount =
-        Math.min(
-          getDiscount(),
-          subtotal
-        );
+      const total = Math.max(0, subtotal - discount + markup);
 
-
-      const markup =
-        getMarkup();
-
-
-      const total =
-        Math.max(
-          0,
-          subtotal -
-          discount +
-          markup
-        );
-
-
-      const paymentUi =
-        document.getElementById(
-          'payment-method'
-        ).value;
+      const paymentUi = document.getElementById('payment-method').value;
 
       // 'paybill_stk' / 'paybill_code' -> 'paybill', 'pochi_code' -> 'pochi'
-      const paymentMethod =
-        normalizePaymentMethod(paymentUi);
-
+      const paymentMethod = normalizePaymentMethod(paymentUi);
 
       const customerName =
-        document.getElementById(
-          'customer-name'
-        ).value.trim() || null;
-
+        document.getElementById('customer-name').value.trim() || null;
 
       const customerPhone =
-        document.getElementById(
-          'customer-phone'
-        ).value.trim() || null;
+        document.getElementById('customer-phone').value.trim() || null;
 
 
       /*
-       * Optional backdated sale time (admin only).
+       * PRICE OVERRIDES
+       * Any line sold above / below its list price is recorded as
+       * markup / discount so the reports can show it. These are added
+       * to the manual discount / markup fields when the sale is saved.
+       * (The per-line price in the cart already drives the total, so
+       * total_amount is unchanged.)
        */
+      let listSubtotal = 0;
+      let lineDiscount = 0;
+      let lineMarkup = 0;
+
+      cart.forEach(item => {
+        const listPrice = safeNumber(item.product.price);
+        const soldPrice = itemPrice(item);
+        const qty = safeNumber(item.quantity);
+
+        listSubtotal += listPrice * qty;
+
+        const diff = (soldPrice - listPrice) * qty;
+        if (diff < 0) lineDiscount += -diff;
+        else if (diff > 0) lineMarkup += diff;
+      });
+
+
+      /* Optional backdated sale time (admin only). */
       let saleDate = null;
 
       const saleDateRaw =
@@ -2460,15 +1820,11 @@
       const saleItems =
         cart.map(item => ({
 
-          product_id:
-            item.product.id,
+          product_id: item.product.id,
 
           unit_price: itemPrice(item),
 
-          quantity:
-            safeNumber(
-              item.quantity
-            )
+          quantity: safeNumber(item.quantity)
 
         }));
 
@@ -2531,32 +1887,26 @@
 
       const saleData = {
 
-        cashier_id:
-          currentStaff.id,
+        cashier_id: currentStaff.id,
 
-        customer_name:
-          customerName,
+        customer_name: customerName,
 
-        customer_phone:
-          customerPhone,
+        customer_phone: customerPhone,
 
-        payment_method:
-          paymentMethod,
+        payment_method: paymentMethod,
 
-        total_amount:
-          total,
+        total_amount: total,
 
-        subtotal_amount:
-          subtotal,
+        /* Subtotal at LIST prices */
+        subtotal_amount: listSubtotal,
 
-        discount_amount:
-          discount,
+        /* Manual discount + lines sold below list price */
+        discount_amount: discount + lineDiscount,
 
-        markup_amount:
-          markup,
+        /* Manual markup + lines sold above list price */
+        markup_amount: markup + lineMarkup,
 
-        status:
-          saleStatus,
+        status: saleStatus,
 
         ...(saleDate
           ? { created_at: saleDate.toISOString() }
@@ -2570,19 +1920,16 @@
           ? {}
           : { payment_verified: false }),
 
-        items:
-          saleItems
+        items: saleItems
       };
 
 
       const receiptItems =
         cart.map(item => ({
 
-          name:
-            item.product.name,
+          name: item.product.name,
 
-          quantity:
-            item.quantity,
+          quantity: item.quantity,
 
           price: itemPrice(item)
         }));
@@ -2597,123 +1944,70 @@
           throw new Error('offline');
         }
 
-
-        const {
-          items,
-          ...saleFields
-        } = saleData;
-
+        const { items, ...saleFields } = saleData;
 
         /* INSERT SALE */
-        const {
-          data: insertedSale,
-          error: saleError
-        } =
+        const { data: insertedSale, error: saleError } =
           await supabaseClient
             .from('sales')
             .insert(saleFields)
             .select()
             .single();
 
-
         if (saleError) {
           throw saleError;
         }
 
-
         if (!insertedSale?.id) {
-          throw new Error(
-            'Sale was created without a sale ID.'
-          );
+          throw new Error('Sale was created without a sale ID.');
         }
-
 
         /* INSERT SALE ITEMS */
         const itemsToInsert =
           items.map(item => ({
             ...item,
-            sale_id:
-              insertedSale.id
+            sale_id: insertedSale.id
           }));
 
-
-        const {
-          error: itemsError
-        } =
+        const { error: itemsError } =
           await supabaseClient
             .from('sale_items')
             .insert(itemsToInsert);
-
 
         if (itemsError) {
           throw itemsError;
         }
 
-
-        /*
-         * UPDATE STOCK
-         */
+        /* UPDATE STOCK */
         for (const item of items) {
 
           const product =
-            allProducts.find(
-              p =>
-                String(p.id) ===
-                String(item.product_id)
-            );
-
+            allProducts.find(p => String(p.id) === String(item.product_id));
 
           if (!product) {
             continue;
           }
 
-
-          const currentStock =
-            safeNumber(
-              product.stock_quantity,
-              0
-            );
-
+          const currentStock = safeNumber(product.stock_quantity, 0);
 
           const newQty =
-            Math.max(
-              0,
-              currentStock -
-              safeNumber(
-                item.quantity
-              )
-            );
+            Math.max(0, currentStock - safeNumber(item.quantity));
 
-
-          const {
-            error: stockError
-          } =
+          const { error: stockError } =
             await supabaseClient
               .from('products')
-              .update({
-                stock_quantity:
-                  newQty
-              })
-              .eq(
-                'id',
-                item.product_id
-              );
-
+              .update({ stock_quantity: newQty })
+              .eq('id', item.product_id);
 
           if (stockError) {
 
-            console.error(
-              'Stock update failed:',
-              stockError
-            );
+            console.error('Stock update failed:', stockError);
 
           } else {
 
-            product.stock_quantity =
-              newQty;
+            product.stock_quantity = newQty;
           }
         }
-
 
         /*
          * PAYBILL PROMPT: the sale is saved as 'pending' with stock reserved.
@@ -2723,11 +2017,7 @@
         if (saleStatus === 'pending') {
 
           const outcome =
-            await runStkFlow(
-              insertedSale.id,
-              customerPhone,
-              total
-            );
+            await runStkFlow(insertedSale.id, customerPhone, total);
 
           if (!outcome.ok) {
 
@@ -2741,26 +2031,19 @@
           mpesaReceipt = outcome.receipt;
         }
 
-
         successfulOnlineSale = true;
 
-
-        /*
-         * Immediately refresh the POS.
-         */
+        /* Immediately refresh the POS. */
         applyProductFilters();
 
         updateLowStockBanner();
 
-
         showReceipt({
 
-          items:
-            receiptItems,
-            cashier: currentStaff.full_name || '',
-            cashReceived: (paymentUi === 'cash' && Number.isFinite(cashGot)) ? cashGot : null,
-            receiptNo: insertedSale.receipt_no || null,
-
+          items: receiptItems,
+          cashier: currentStaff.full_name || '',
+          cashReceived: (paymentUi === 'cash' && Number.isFinite(cashGot)) ? cashGot : null,
+          receiptNo: insertedSale.receipt_no || null,
 
           subtotal,
 
@@ -2778,19 +2061,13 @@
 
           customerPhone,
 
-          date:
-            saleDate || new Date()
+          date: saleDate || new Date()
 
         });
 
-
       } catch (err) {
 
-        console.warn(
-          'Online checkout failed:',
-          err
-        );
-
+        console.warn('Online checkout failed:', err);
 
         if (isMpesa) {
 
@@ -2807,21 +2084,15 @@
           return;
         }
 
-
         try {
 
-          await queueSaleOffline(
-            saleData
-          );
-
+          await queueSaleOffline(saleData);
 
           showReceipt({
 
-            items:
-              receiptItems,
+            items: receiptItems,
             cashier: currentStaff.full_name || '',
             cashReceived: (paymentUi === 'cash' && Number.isFinite(cashGot)) ? cashGot : null,
-
 
             subtotal,
 
@@ -2837,72 +2108,46 @@
 
             customerPhone,
 
-            date:
-              saleDate || new Date(),
+            date: saleDate || new Date(),
 
-            offline:
-              true
+            offline: true
 
           });
 
+          const pending = await getPendingSales();
 
-          const pending =
-            await getPendingSales();
-
-
-          updateSyncBadge(
-            pending.length
-          );
+          updateSyncBadge(pending.length);
 
         } catch (queueError) {
 
-          console.error(
-            'Unable to queue sale:',
-            queueError
-          );
+          console.error('Unable to queue sale:', queueError);
 
+          errorEl.textContent = 'Sale could not be completed. Please try again.';
 
-          errorEl.textContent =
-            'Sale could not be completed. Please try again.';
+          errorEl.style.display = 'block';
 
-          errorEl.style.display =
-            'block';
+          btn.disabled = false;
 
-
-          btn.disabled =
-            false;
-
-          btn.textContent =
-            'Complete Sale';
+          btn.textContent = 'Complete Sale';
 
           return;
         }
       }
 
-
       /*
        * Clear sale only after successful
        * online checkout or offline queue.
        */
-      if (
-        successfulOnlineSale ||
-        !navigator.onLine
-      ) {
+      if (successfulOnlineSale || !navigator.onLine) {
 
         clearCurrentSale();
       }
 
+      btn.disabled = false;
 
-      btn.disabled =
-        false;
+      btn.textContent = 'Complete Sale';
 
-      btn.textContent =
-        'Complete Sale';
-
-
-      /*
-       * Reload current stock.
-       */
+      /* Reload current stock. */
       if (successfulOnlineSale) {
 
         await loadProducts();
@@ -2922,65 +2167,37 @@
 
     function showReceipt(data) {
 
-      lastReceiptData =
-        data;
+      lastReceiptData = data;
 
-
-      const shopName =
-        'Thuku Enterprise';
-
+      const shopName = 'Thuku Enterprise';
 
       const lines =
         data.items
           .map(item => {
 
             const lineTotal =
-              safeNumber(item.price) *
-              safeNumber(item.quantity);
-
+              safeNumber(item.price) * safeNumber(item.quantity);
 
             return (
-              `${item.name} x${item.quantity}`
-                .padEnd(28) +
+              `${item.name} x${item.quantity}`.padEnd(28) +
               `Ksh ${lineTotal.toLocaleString()}`
             );
 
           })
           .join('\n');
 
+      document.getElementById('receipt-content').innerHTML = `
 
-      document.getElementById(
-        'receipt-content'
-      ).innerHTML = `
+        <div style="text-align:center; margin-bottom:10px;">
 
-        <div
-          style="
-            text-align:center;
-            margin-bottom:10px;
-          "
-        >
-
-          <strong
-            style="font-size:1rem;"
-          >
+          <strong style="font-size:1rem;">
             ${escapeHtml(shopName)}
           </strong>
 
           <br>
 
-          <span
-            style="
-              font-size:0.75rem;
-              color:var(--muted);
-            "
-          >
-            ${data.date.toLocaleString(
-              'en-KE',
-              {
-                dateStyle:'medium',
-                timeStyle:'short'
-              }
-            )}
+          <span style="font-size:0.75rem; color:var(--muted);">
+            ${data.date.toLocaleString('en-KE', { dateStyle:'medium', timeStyle:'short' })}
           </span>
           ${data.receiptNo ? `<br><span style="font-size:0.8rem;">Receipt No: ${escapeHtml('R' + String(data.receiptNo).padStart(6, '0'))}</span>` : ''}
           ${data.cashier ? `<br><span style="font-size:0.8rem;">Served by: ${escapeHtml(data.cashier)}</span>` : ''}
@@ -3001,34 +2218,18 @@
         </div>
 
 
-        <div
-          style="
-            display:flex;
-            justify-content:space-between;
-          "
-        >
+        <div style="display:flex; justify-content:space-between;">
           <span>Subtotal</span>
-
-          <span>
-            Ksh ${data.subtotal.toLocaleString()}
-          </span>
+          <span>Ksh ${data.subtotal.toLocaleString()}</span>
         </div>
 
 
         ${
           data.discount > 0
             ? `
-              <div
-                style="
-                  display:flex;
-                  justify-content:space-between;
-                "
-              >
+              <div style="display:flex; justify-content:space-between;">
                 <span>Discount</span>
-
-                <span>
-                  − Ksh ${data.discount.toLocaleString()}
-                </span>
+                <span>− Ksh ${data.discount.toLocaleString()}</span>
               </div>
             `
             : ''
@@ -3038,47 +2239,23 @@
         ${
           data.markup > 0
             ? `
-              <div
-                style="
-                  display:flex;
-                  justify-content:space-between;
-                "
-              >
+              <div style="display:flex; justify-content:space-between;">
                 <span>Markup</span>
-
-                <span>
-                  + Ksh ${data.markup.toLocaleString()}
-                </span>
+                <span>+ Ksh ${data.markup.toLocaleString()}</span>
               </div>
             `
             : ''
         }
 
 
-        <div
-          style="
-            display:flex;
-            justify-content:space-between;
-            font-weight:700;
-            margin-top:4px;
-          "
-        >
+        <div style="display:flex; justify-content:space-between; font-weight:700; margin-top:4px;">
           <span>TOTAL</span>
-
-          <span>
-            Ksh ${data.total.toLocaleString()}
-          </span>
+          <span>Ksh ${data.total.toLocaleString()}</span>
         </div>
 
 
         ${data.cashReceived != null ? `<div style="display:flex;justify-content:space-between;margin-top:6px;"><span>Cash</span><span>Ksh ${Number(data.cashReceived).toLocaleString()}</span></div><div style="display:flex;justify-content:space-between;"><span>Change</span><span>Ksh ${Math.max(0, data.cashReceived - data.total).toLocaleString()}</span></div>` : ''}
-        <div
-          style="
-            margin-top:8px;
-            font-size:0.8rem;
-            color:var(--muted);
-          "
-        >
+        <div style="margin-top:8px; font-size:0.8rem; color:var(--muted);">
           Payment:
           ${escapeHtml(data.paymentMethod)}
         </div>
@@ -3086,12 +2263,7 @@
         ${
           data.mpesaReceipt
             ? `
-              <div
-                style="
-                  font-size:0.8rem;
-                  color:var(--muted);
-                "
-              >
+              <div style="font-size:0.8rem; color:var(--muted);">
                 M-Pesa code:
                 ${escapeHtml(data.mpesaReceipt)}
               </div>
@@ -3103,12 +2275,7 @@
         ${
           data.customerName
             ? `
-              <div
-                style="
-                  font-size:0.8rem;
-                  color:var(--muted);
-                "
-              >
+              <div style="font-size:0.8rem; color:var(--muted);">
                 Customer:
                 ${escapeHtml(data.customerName)}
               </div>
@@ -3120,12 +2287,7 @@
         ${
           data.customerPhone
             ? `
-              <div
-                style="
-                  font-size:0.8rem;
-                  color:var(--muted);
-                "
-              >
+              <div style="font-size:0.8rem; color:var(--muted);">
                 Phone:
                 ${escapeHtml(data.customerPhone)}
               </div>
@@ -3137,13 +2299,7 @@
         ${
           data.offline
             ? `
-              <div
-                style="
-                  margin-top:8px;
-                  color:var(--gold);
-                  font-size:0.8rem;
-                "
-              >
+              <div style="margin-top:8px; color:var(--gold); font-size:0.8rem;">
                 ⚠️ Saved offline —
                 will sync when back online.
               </div>
@@ -3152,45 +2308,23 @@
         }
 
 
-        <div
-          style="
-            text-align:center;
-            margin-top:12px;
-            font-size:0.8rem;
-            color:var(--muted);
-          "
-        >
+        <div style="text-align:center; margin-top:12px; font-size:0.8rem; color:var(--muted);">
           Thank you for your business!
         </div>
 
       `;
 
+      document.getElementById('receipt-overlay').style.display = 'block';
 
-      document.getElementById(
-        'receipt-overlay'
-      ).style.display =
-        'block';
-
-
-      document.getElementById(
-        'receipt-panel'
-      ).style.display =
-        'block';
+      document.getElementById('receipt-panel').style.display = 'block';
     }
 
 
     function closeReceipt() {
 
-      document.getElementById(
-        'receipt-overlay'
-      ).style.display =
-        'none';
+      document.getElementById('receipt-overlay').style.display = 'none';
 
-
-      document.getElementById(
-        'receipt-panel'
-      ).style.display =
-        'none';
+      document.getElementById('receipt-panel').style.display = 'none';
     }
 
 
@@ -3200,28 +2334,16 @@
 
     function printReceipt() {
 
-      const content =
-        document.getElementById(
-          'receipt-content'
-        ).innerHTML;
+      const content = document.getElementById('receipt-content').innerHTML;
 
-
-      const printWindow =
-        window.open(
-          '',
-          '_blank'
-        );
-
+      const printWindow = window.open('', '_blank');
 
       if (!printWindow) {
 
-        alert(
-          'Please allow pop-ups to print the receipt.'
-        );
+        alert('Please allow pop-ups to print the receipt.');
 
         return;
       }
-
 
       printWindow.document.write(`
 
@@ -3253,7 +2375,6 @@
 
       `);
 
-
       printWindow.document.close();
 
       printWindow.focus();
@@ -3272,21 +2393,16 @@
         return;
       }
 
-
-      const data =
-        lastReceiptData;
-
+      const data = lastReceiptData;
 
       const lines =
         data.items
           .map(item =>
             `${item.name} x${item.quantity} - Ksh ${(
-              safeNumber(item.price) *
-              safeNumber(item.quantity)
+              safeNumber(item.price) * safeNumber(item.quantity)
             ).toLocaleString()}`
           )
           .join('\n');
-
 
       let text =
         `*Thuku Enterprise Receipt*\n` +
@@ -3297,23 +2413,15 @@
         `${lines}\n\n` +
         `Subtotal: Ksh ${data.subtotal.toLocaleString()}`;
 
-
       if (data.discount > 0) {
-
-        text +=
-          `\nDiscount: -Ksh ${data.discount.toLocaleString()}`;
+        text += `\nDiscount: -Ksh ${data.discount.toLocaleString()}`;
       }
-
 
       if (data.markup > 0) {
-
-        text +=
-          `\nMarkup: +Ksh ${data.markup.toLocaleString()}`;
+        text += `\nMarkup: +Ksh ${data.markup.toLocaleString()}`;
       }
 
-
-      text +=
-        `\n*TOTAL: Ksh ${data.total.toLocaleString()}*`;
+      text += `\n*TOTAL: Ksh ${data.total.toLocaleString()}*`;
 
       if (data.cashReceived != null) {
         text +=
@@ -3330,43 +2438,29 @@
 
       text += `\n\nThank you for your business!`;
 
-
       const phone =
         data.customerPhone
           ? data.customerPhone.replace(/\D/g, '')
           : '';
 
-
-      let normalizedPhone =
-        phone;
-
+      let normalizedPhone = phone;
 
       /*
        * Kenyan mobile number:
        * 07XXXXXXXX -> 2547XXXXXXXX
        * 01XXXXXXXX -> 2541XXXXXXXX
        */
-      if (
-        normalizedPhone.startsWith('0') &&
-        normalizedPhone.length === 10
-      ) {
+      if (normalizedPhone.startsWith('0') && normalizedPhone.length === 10) {
 
-        normalizedPhone =
-          '254' +
-          normalizedPhone.slice(1);
+        normalizedPhone = '254' + normalizedPhone.slice(1);
       }
-
 
       const waUrl =
         normalizedPhone
           ? `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(text)}`
           : `https://wa.me/?text=${encodeURIComponent(text)}`;
 
-
-      window.open(
-        waUrl,
-        '_blank'
-      );
+      window.open(waUrl, '_blank');
     }
 
 
@@ -3376,13 +2470,9 @@
 
     function escapeHtml(value) {
 
-      const div =
-        document.createElement('div');
+      const div = document.createElement('div');
 
-
-      div.textContent =
-        value ?? '';
-
+      div.textContent = value ?? '';
 
       return div.innerHTML;
     }
@@ -3396,10 +2486,7 @@
       'online',
       async () => {
 
-        console.log(
-          'POS is back online.'
-        );
-
+        console.log('POS is back online.');
 
         try {
 
@@ -3409,10 +2496,7 @@
 
         } catch (error) {
 
-          console.error(
-            'Failed to refresh products after reconnect:',
-            error
-          );
+          console.error('Failed to refresh products after reconnect:', error);
         }
       }
     );
@@ -3422,13 +2506,9 @@
       'offline',
       () => {
 
-        console.log(
-          'POS is offline.'
-        );
+        console.log('POS is offline.');
 
-        /*
-         * Cached products can still be used.
-         */
+        /* Cached products can still be used. */
         updateLowStockBanner();
 
       }
@@ -3443,17 +2523,12 @@
       'load',
       () => {
 
-        setTimeout(
-          () => {
-            updateLowStockBanner();
-          },
-          500
-        );
+        setTimeout(() => { updateLowStockBanner(); }, 500);
 
       }
     );
 
-  
+
     document.getElementById('cash-received').addEventListener('input', updateTotals);
     document.getElementById('payment-method').addEventListener('change', updateTotals);
     updateTotals();
