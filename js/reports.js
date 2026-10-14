@@ -95,14 +95,17 @@ async function loadReport() {
 
   // Revenue = what customers actually paid (includes discounts/markup).
   // With a department filter we can only use the item lines.
-  let revenue = revenueLines, adj = 0;
+  let revenue = revenueLines, adj = 0, discTotal = 0, markTotal = 0;
   if (!dept) {
     const seen = new Map();
     for (const l of rows) seen.set(l.sale_id, l.sales);
-    revenue = 0; let disc = 0, mark = 0;
-    seen.forEach(s => { revenue += num(s.total_amount); disc += num(s.discount_amount); mark += num(s.markup_amount); });
+    revenue = 0;
+    seen.forEach(s => {
+      revenue += num(s.total_amount);
+      discTotal += num(s.discount_amount);
+      markTotal += num(s.markup_amount);
+    });
     adj = revenue - revenueLines;
-    groups.discount = disc; groups.markup = mark;
   }
   $('dept-note').style.display = dept ? 'block' : 'none';
 
@@ -123,7 +126,7 @@ async function loadReport() {
   $('k-profit').className = 'k-value ' + (profit >= 0 ? 'good' : 'bad');
   $('k-net').className = 'k-value ' + (net >= 0 ? 'good' : 'bad');
 
-  renderLedger([...groups.values()], { revenue, cost, items, profit, adj, startDay, endDay });
+  renderLedger([...groups.values()], { revenue, cost, items, profit, adj, discTotal, markTotal, startDay, endDay });
   renderSales(rows);
   renderExpenses(expenses);
 }
@@ -156,6 +159,14 @@ function renderLedger(list, t) {
   html += '<div class="l-totals"><div class="l-row"><span>' + plain(t.items) + ' total</span>' +
     '<span class="num">' + plain(t.revenue) + '</span><span class="num">' + plain(t.cost) + '</span></div>' +
     '<div class="l-row l-profit"><span></span><span>' + plain(t.profit) + '</span><span></span></div></div>';
+
+  // Information only: already included in the prices / revenue above.
+  if (t.discTotal >= 1 || t.markTotal >= 1) {
+    html += '<div class="l-row adj" style="margin-top:8px;"><span>Discounts given (already in the prices above)</span><span>−' +
+      plain(t.discTotal) + '</span><span></span></div>' +
+      '<div class="l-row adj"><span>Markup added (already in the prices above)</span><span>+' +
+      plain(t.markTotal) + '</span><span></span></div>';
+  }
 
   $('ledger').innerHTML = html;
 }
