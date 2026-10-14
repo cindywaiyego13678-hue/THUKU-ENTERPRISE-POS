@@ -60,7 +60,7 @@ async function loadReport() {
     .from('sale_items')
     .select(`
       id, sale_id, product_id, unit_price, quantity,
-      products ( name, cost, department ),
+      products ( name, cost, price, department ),
       sales!inner ( id, created_at, status, payment_method, customer_name, total_amount, discount_amount, markup_amount )
     `)
     .gte('sales.created_at', start.toISOString())
@@ -84,7 +84,8 @@ async function loadReport() {
     const q = num(l.quantity), price = num(l.unit_price), unitCost = num(l.products?.cost);
     const name = l.products?.name || 'Unknown product';
     const key = l.product_id + '|' + price + '|' + unitCost;
-    const g = groups.get(key) || { name, qty: 0, price, unitCost };
+    const listPrice = num(l.products?.price);
+    const g = groups.get(key) || { name, qty: 0, price, unitCost, listPrice };
     g.qty += q;
     groups.set(key, g);
     revenueLines += q * price;
@@ -126,7 +127,7 @@ async function loadReport() {
   $('k-profit').className = 'k-value ' + (profit >= 0 ? 'good' : 'bad');
   $('k-net').className = 'k-value ' + (net >= 0 ? 'good' : 'bad');
 
-  renderLedger([...groups.values()], { revenue, cost, items, profit, adj, discTotal, markTotal, startDay, endDay });
+  renderLedger([...groups.values()], { revenue, cost, items, profit, adj, discTotal, markTotal, startDay, endDay, dept });
   renderSales(rows);
   renderExpenses(expenses);
 }
@@ -142,30 +143,56 @@ function renderLedger(list, t) {
   list.sort((a, b) => a.name.localeCompare(b.name));
 
   const title = t.startDay === t.endDay ? t.startDay : t.startDay + ' to ' + t.endDay;
+  const G = ' style="grid-template-columns:minmax(200px,1.4fr) 1fr 1fr 1fr;"';
+
+  // Per-product discount (sold below list price) / markup (sold above list price)
+  let lineDisc = 0, lineMark = 0;
+  list.forEach(g => {
+    const d = g.listPrice > 0 ? (g.price - g.listPrice) * g.qty : 0;
+    g.diff = d;
+    if (d < 0) lineDisc += -d; else if (d > 0) lineMark += d;
+  });
+
+  const adjCell = (g) => {
+    if (Math.abs(g.diff) < 1) return '<span>–</span>';
+    return g.diff < 0
+      ? '<span style="color:var(--red)">−' + plain(-g.diff) + ' discount</span>'
+      : '<span style="color:var(--green)">+' + plain(g.diff) + ' markup</span>';
+  };
+
   const row = (g) =>
-    '<div class="l-row"><span>– ' + esc(g.name) + '</span>' +
+    '<div class="l-row"' + G + '><span>– ' + esc(g.name) +
+      (Math.abs(g.diff) >= 1 ? '<br><small style="color:var(--muted)">list price ' + plain(g.listPrice) + '</small>' : '') + '</span>' +
     '<span>' + plain(g.qty) + ' x ' + plain(g.price) + '<span class="arrow">→</span>' + plain(g.qty * g.price) + '</span>' +
-    '<span>' + plain(g.qty) + ' x ' + plain(g.unitCost) + '<span class="arrow">→</span>' + plain(g.qty * g.unitCost) + '</span></div>';
+    '<span>' + plain(g.qty) + ' x ' + plain(g.unitCost) + '<span class="arrow">→</span>' + plain(g.qty * g.unitCost) + '</span>' +
+    adjCell(g) + '</div>';
 
   let html = '<div class="ledger-title">Summary ' + esc(title) + '</div>' +
-    '<div class="l-row head"><span>Product</span><span>Sold (qty x price)</span><span>Cost (qty x cost)</span></div>' +
+    '<div class="l-row head"' + G + '><span>Product</span><span>Sold (qty x price)</span><span>Cost (qty x cost)</span><span>Discount / Markup</span></div>' +
     list.map(row).join('');
 
   if (Math.abs(t.adj) >= 1) {
-    html += '<div class="l-row adj"><span>– Discounts / markup</span><span>' +
-      (t.adj > 0 ? '+' : '−') + plain(Math.abs(t.adj)) + '</span><span></span></div>';
+    html += '<div class="l-row adj"' + G + '><span>– Net of all discounts / markup</span><span>' +
+      (t.adj > 0 ? '+' : '−') + plain(Math.abs(t.adj)) + '</span><span></span><span></span></div>';
   }
 
-  html += '<div class="l-totals"><div class="l-row"><span>' + plain(t.items) + ' total</span>' +
-    '<span class="num">' + plain(t.revenue) + '</span><span class="num">' + plain(t.cost) + '</span></div>' +
-    '<div class="l-row l-profit"><span></span><span>' + plain(t.profit) + '</span><span></span></div></div>';
+  html += '<div class="l-totals"><div class="l-row"' + G + '><span>' + plain(t.items) + ' total</span>' +
+    '<span class="num">' + plain(t.revenue) + '</span><span class="num">' + plain(t.cost) + '</span>' +
+    '<span>' + (lineDisc >= 1 ? '<span style="color:var(--red)">−' + plain(lineDisc) + '</span> ' : '') +
+               (lineMark >= 1 ? '<span style="color:var(--green)">+' + plain(lineMark) + '</span>' : '') + '</span></div>' +
+    '<div class="l-row l-profit"' + G + '><span></span><span>' + plain(t.profit) + '</span><span></span><span></span></div></div>';
 
-  // Information only: already included in the prices / revenue above.
-  if (t.discTotal >= 1 || t.markTotal >= 1) {
-    html += '<div class="l-row adj" style="margin-top:8px;"><span>Discounts given (already in the prices above)</span><span>−' +
-      plain(t.discTotal) + '</span><span></span></div>' +
-      '<div class="l-row adj"><span>Markup added (already in the prices above)</span><span>+' +
-      plain(t.markTotal) + '</span><span></span></div>';
+  // Discount / markup typed in the POS for the whole sale (not tied to one product).
+  // Only known when no department filter is on. Information only: already inside revenue.
+  if (!t.dept) {
+    const saleDisc = Math.max(0, t.discTotal - lineDisc);
+    const saleMark = Math.max(0, t.markTotal - lineMark);
+    if (saleDisc >= 1 || saleMark >= 1) {
+      html += '<div class="l-row adj" style="margin-top:8px;grid-template-columns:minmax(200px,1.4fr) 1fr 1fr 1fr;">' +
+        '<span>Whole-sale discount / markup (not tied to a product)</span><span></span><span></span><span>' +
+        (saleDisc >= 1 ? '−' + plain(saleDisc) + ' discount ' : '') +
+        (saleMark >= 1 ? '+' + plain(saleMark) + ' markup' : '') + '</span></div>';
+    }
   }
 
   $('ledger').innerHTML = html;
