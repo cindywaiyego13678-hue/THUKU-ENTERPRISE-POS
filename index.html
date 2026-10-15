@@ -76,12 +76,17 @@
   <script src="js/offline-cache.js"></script>
   <script src="js/supabase-config.js"></script>
   <script>
+    // Admin and staff go to the POS first. Owner (view-only) has no POS access, so goes to the dashboard.
+    function homePageFor(role) {
+      return role === 'owner' ? 'dashboard.html' : 'pos.html';
+    }
+
     (async () => {
       const { data: { session } } = await supabaseClient.auth.getSession();
       if (session) {
         const staff = await getCurrentStaff();
         if (staff) {
-          window.location.href = staff.role === 'admin' ? 'dashboard.html' : 'pos.html';
+          window.location.href = homePageFor(staff.role);
           return;
         }
       }
@@ -137,7 +142,7 @@
         return;
       }
 
-      window.location.href = staff.role === 'admin' ? 'dashboard.html' : 'pos.html';
+      window.location.href = homePageFor(staff.role);
     }
 
     document.getElementById('show-create-btn').addEventListener('click', () => {
@@ -199,7 +204,7 @@
       }
 
       await supabaseClient.auth.signInWithPassword({ email, password });
-      window.location.href = 'dashboard.html';
+      window.location.href = 'pos.html';
     }
   </script>
 
