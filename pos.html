@@ -190,50 +190,9 @@
         <div id="cart-items"></div>
 
 
-        <!-- DISCOUNT / MARKUP -->
-        <div class="grid grid-2" style="margin-top:10px;">
-
-          <div class="field">
-
-            <label for="discount-amount">
-              Discount (Ksh)
-            </label>
-
-            <input
-              type="number"
-              id="discount-amount"
-              min="0"
-              step="0.01"
-              placeholder="0"
-              value="0"
-            >
-
-          </div>
-
-
-          <div class="field">
-
-            <label for="markup-amount">
-              Markup (Ksh)
-            </label>
-
-            <input
-              type="number"
-              id="markup-amount"
-              min="0"
-              step="0.01"
-              placeholder="0"
-              value="0"
-            >
-
-          </div>
-
-        </div>
-
-
-        <p style="font-size:0.75rem; color:var(--muted); margin-top:-8px;">
-          Use Discount if selling below listed price,
-          or Markup if selling above it.
+        <p style="font-size:0.75rem; color:var(--muted); margin-top:6px;">
+          Use the Disc / Markup box on each line for that product only
+          (Ksh for the whole line).
           Editing a line price is also recorded automatically
           as a discount or markup in the reports.
         </p>
@@ -1071,23 +1030,51 @@
     }
 
 
-    function getDiscount() {
+    /* ------------------------------------------------------------
+       PER-LINE DISCOUNT / MARKUP (Ksh for the whole line)
+    ------------------------------------------------------------ */
 
-      const input = document.getElementById('discount-amount');
-
-      const value = parseFloat(input?.value);
-
-      return Number.isFinite(value) && value >= 0 ? value : 0;
+    function lineGross(item) {
+      return itemPrice(item) * safeNumber(item.quantity);
     }
 
+    function lineDisc(item) {
+      const d = parseFloat(item.discount);
+      return Number.isFinite(d) && d > 0 ? Math.min(d, lineGross(item)) : 0;
+    }
+
+    function lineMark(item) {
+      const m = parseFloat(item.markup);
+      return Number.isFinite(m) && m > 0 ? m : 0;
+    }
+
+    function lineNet(item) {
+      return lineGross(item) - lineDisc(item) + lineMark(item);
+    }
+
+    function setLineDiscount(index, value) {
+      const item = cart[index];
+      if (!item) return;
+      const d = parseFloat(value);
+      item.discount = Number.isFinite(d) && d > 0 ? d : 0;
+      renderCart();
+    }
+
+    function setLineMarkup(index, value) {
+      const item = cart[index];
+      if (!item) return;
+      const m = parseFloat(value);
+      item.markup = Number.isFinite(m) && m > 0 ? m : 0;
+      renderCart();
+    }
+
+    /* Sale-level figures are the sum of the lines. */
+    function getDiscount() {
+      return cart.reduce((sum, item) => sum + lineDisc(item), 0);
+    }
 
     function getMarkup() {
-
-      const input = document.getElementById('markup-amount');
-
-      const value = parseFloat(input?.value);
-
-      return Number.isFinite(value) && value >= 0 ? value : 0;
+      return cart.reduce((sum, item) => sum + lineMark(item), 0);
     }
 
 
@@ -1111,13 +1098,15 @@
 
         el.innerHTML = `
           <table class="pos-table">
-            <thead><tr><th>#</th><th>Particulars</th><th>Qty</th><th class="num">@</th><th class="num">Total</th><th></th></tr></thead>
+            <thead><tr><th>#</th><th>Particulars</th><th>Qty</th><th class="num">@</th><th class="num">Disc</th><th class="num">Markup</th><th class="num">Total</th><th></th></tr></thead>
             <tbody>
             ${cart.map((item, i) => {
               const price = itemPrice(item);
               const listPrice = safeNumber(item.product.price);
               const changed = price !== listPrice;
               const tag = !changed ? '' : (price > listPrice ? 'markup' : 'discount');
+              const d = lineDisc(item);
+              const m = lineMark(item);
               return `<tr>
                 <td>${i + 1}</td>
                 <td><strong>${escapeHtml(item.product.name)}</strong>${changed ? `<div style="font-size:0.7rem;color:#b36b00;">list ${listPrice.toLocaleString()} · ${tag}</div>` : ''}</td>
@@ -1126,8 +1115,10 @@
                   <span style="display:inline-block;min-width:22px;text-align:center;">${item.quantity}</span>
                   <button type="button" class="secondary" style="padding:1px 7px;" onclick="changeQuantity(${i}, 1)">+</button>
                 </td>
-                <td class="num"><input type="number" min="0" step="1" value="${price}" onchange="setLinePrice(${i}, this.value)" style="width:80px;padding:2px 6px;text-align:right;${changed ? 'border-color:#f0ad00;' : ''}"></td>
-                <td class="num"><strong>${(price * safeNumber(item.quantity)).toLocaleString()}</strong></td>
+                <td class="num"><input type="number" min="0" step="1" value="${price}" onchange="setLinePrice(${i}, this.value)" style="width:70px;padding:2px 6px;text-align:right;${changed ? 'border-color:#f0ad00;' : ''}"></td>
+                <td class="num"><input type="number" min="0" step="1" value="${d || ''}" placeholder="0" onchange="setLineDiscount(${i}, this.value)" style="width:60px;padding:2px 6px;text-align:right;${d ? 'border-color:#f0ad00;' : ''}"></td>
+                <td class="num"><input type="number" min="0" step="1" value="${m || ''}" placeholder="0" onchange="setLineMarkup(${i}, this.value)" style="width:60px;padding:2px 6px;text-align:right;${m ? 'border-color:#f0ad00;' : ''}"></td>
+                <td class="num"><strong>${lineNet(item).toLocaleString()}</strong></td>
                 <td><button type="button" class="danger" style="padding:1px 7px;" title="Remove line" onclick="changeQuantity(${i}, -${item.quantity})">✕</button></td>
               </tr>`;
             }).join('')}
@@ -1179,16 +1170,6 @@
 
       updateChange(total);
     }
-
-
-    document
-      .getElementById('discount-amount')
-      .addEventListener('input', updateTotals);
-
-
-    document
-      .getElementById('markup-amount')
-      .addEventListener('input', updateTotals);
 
 
     /* ============================================================
@@ -1249,12 +1230,10 @@
           cart.map(item => ({
             productId: item.product.id,
             quantity: item.quantity,
-            price: item.price
+            price: item.price,
+            discount: item.discount,
+            markup: item.markup
           })),
-
-        discount: getDiscount(),
-
-        markup: getMarkup(),
 
         customerName: customerName,
 
@@ -1278,10 +1257,6 @@
 
       const cr = document.getElementById('cash-received');
       if (cr) cr.value = '';
-
-      document.getElementById('discount-amount').value = 0;
-
-      document.getElementById('markup-amount').value = 0;
 
       document.getElementById('customer-name').value = '';
 
@@ -1405,14 +1380,16 @@
               return null;
             }
 
-            return { product, quantity, price: ci.price };
+            return {
+              product,
+              quantity,
+              price: ci.price,
+              discount: ci.discount,
+              markup: ci.markup
+            };
 
           })
           .filter(Boolean);
-
-      document.getElementById('discount-amount').value = entry.discount || 0;
-
-      document.getElementById('markup-amount').value = entry.markup || 0;
 
       document.getElementById('customer-name').value = entry.customerName || '';
 
@@ -1731,6 +1708,7 @@
 
       const subtotal = getSubtotal();
 
+      /* Sum of the per-line discounts / markups */
       const discount = Math.min(getDiscount(), subtotal);
 
       const markup = getMarkup();
@@ -1753,7 +1731,7 @@
        * PRICE OVERRIDES
        * Any line sold above / below its list price is recorded as
        * markup / discount so the reports can show it. These are added
-       * to the manual discount / markup fields when the sale is saved.
+       * to the per-line discount / markup when the sale is saved.
        * (The per-line price in the cart already drives the total, so
        * total_amount is unchanged.)
        */
@@ -1900,10 +1878,10 @@
         /* Subtotal at LIST prices */
         subtotal_amount: listSubtotal,
 
-        /* Manual discount + lines sold below list price */
+        /* Per-line discounts + lines sold below list price */
         discount_amount: discount + lineDiscount,
 
-        /* Manual markup + lines sold above list price */
+        /* Per-line markups + lines sold above list price */
         markup_amount: markup + lineMarkup,
 
         status: saleStatus,
