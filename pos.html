@@ -1909,7 +1909,10 @@
 
           quantity: item.quantity,
 
-          price: itemPrice(item)
+          price: itemPrice(item),
+
+          /* Final amount for the line (after any discount / markup) */
+          lineTotal: lineNet(item)
         }));
 
 
@@ -2154,7 +2157,9 @@
           .map(item => {
 
             const lineTotal =
-              safeNumber(item.price) * safeNumber(item.quantity);
+              item.lineTotal != null
+                ? safeNumber(item.lineTotal)
+                : safeNumber(item.price) * safeNumber(item.quantity);
 
             return (
               `${item.name} x${item.quantity}`.padEnd(28) +
@@ -2194,36 +2199,6 @@
         >
           ${escapeHtml(lines)}
         </div>
-
-
-        <div style="display:flex; justify-content:space-between;">
-          <span>Subtotal</span>
-          <span>Ksh ${data.subtotal.toLocaleString()}</span>
-        </div>
-
-
-        ${
-          data.discount > 0
-            ? `
-              <div style="display:flex; justify-content:space-between;">
-                <span>Discount</span>
-                <span>− Ksh ${data.discount.toLocaleString()}</span>
-              </div>
-            `
-            : ''
-        }
-
-
-        ${
-          data.markup > 0
-            ? `
-              <div style="display:flex; justify-content:space-between;">
-                <span>Markup</span>
-                <span>+ Ksh ${data.markup.toLocaleString()}</span>
-              </div>
-            `
-            : ''
-        }
 
 
         <div style="display:flex; justify-content:space-between; font-weight:700; margin-top:4px;">
@@ -2377,7 +2352,9 @@
         data.items
           .map(item =>
             `${item.name} x${item.quantity} - Ksh ${(
-              safeNumber(item.price) * safeNumber(item.quantity)
+              item.lineTotal != null
+                ? safeNumber(item.lineTotal)
+                : safeNumber(item.price) * safeNumber(item.quantity)
             ).toLocaleString()}`
           )
           .join('\n');
@@ -2389,17 +2366,7 @@
         (data.cashier ? `Served by: ${data.cashier}\n` : '') +
         `\n` +
         `${lines}\n\n` +
-        `Subtotal: Ksh ${data.subtotal.toLocaleString()}`;
-
-      if (data.discount > 0) {
-        text += `\nDiscount: -Ksh ${data.discount.toLocaleString()}`;
-      }
-
-      if (data.markup > 0) {
-        text += `\nMarkup: +Ksh ${data.markup.toLocaleString()}`;
-      }
-
-      text += `\n*TOTAL: Ksh ${data.total.toLocaleString()}*`;
+        `*TOTAL: Ksh ${data.total.toLocaleString()}*`;
 
       if (data.cashReceived != null) {
         text +=
