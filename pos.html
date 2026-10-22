@@ -740,22 +740,43 @@
 
       try {
 
-        const { data, error } =
-          await supabaseClient
-            .from('products')
-            .select('*')
-            .eq('is_active', true)
-            .order('name');
+        /* The database returns at most 1000 rows per request,
+           so load in pages until every product is fetched. */
+        const PAGE_SIZE = 1000;
+        let all = [];
+        let from = 0;
 
-        if (error) {
-          throw error;
+        while (true) {
+
+          const { data, error } =
+            await supabaseClient
+              .from('products')
+              .select('*')
+              .eq('is_active', true)
+              .order('name')
+              .order('id')
+              .range(from, from + PAGE_SIZE - 1);
+
+          if (error) {
+            throw error;
+          }
+
+          const rows = Array.isArray(data) ? data : [];
+
+          all = all.concat(rows);
+
+          if (rows.length < PAGE_SIZE) {
+            break;
+          }
+
+          from += PAGE_SIZE;
         }
 
         hideOfflineBanner();
 
-        allProducts = Array.isArray(data) ? data : [];
+        allProducts = all;
 
-        console.log('POS products loaded:', allProducts);
+        console.log('POS products loaded:', allProducts.length);
 
         /* Save latest product data. */
         cacheSet('products_list', allProducts);
