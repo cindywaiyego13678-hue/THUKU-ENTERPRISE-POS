@@ -452,6 +452,97 @@
 
     const HELD_SALES_KEY = 'appliance_pos_held_sales';
 
+    /* The sale being typed is saved here so it survives a
+       power cut, a crash or the page being closed. */
+    const CURRENT_SALE_KEY = 'appliance_pos_current_sale';
+
+    /* Saving only starts after the saved sale has been restored,
+       so an empty cart on page load can never overwrite it. */
+    let currentSaleSavingOn = false;
+
+    function saveCurrentSale() {
+
+      if (!currentSaleSavingOn) {
+        return;
+      }
+
+      try {
+
+        const nameEl = document.getElementById('customer-name');
+        const phoneEl = document.getElementById('customer-phone');
+
+        if (!cart.length && !(nameEl && nameEl.value) && !(phoneEl && phoneEl.value)) {
+          localStorage.removeItem(CURRENT_SALE_KEY);
+          return;
+        }
+
+        localStorage.setItem(CURRENT_SALE_KEY, JSON.stringify({
+          cart: cart.map(item => ({
+            productId: item.product.id,
+            quantity: item.quantity,
+            price: item.price,
+            discount: item.discount,
+            markup: item.markup
+          })),
+          customerName: nameEl ? nameEl.value : '',
+          customerPhone: phoneEl ? phoneEl.value : '',
+          savedAt: new Date().toISOString()
+        }));
+
+      } catch (error) {
+
+        console.error('Unable to save current sale:', error);
+      }
+    }
+
+    function restoreCurrentSale() {
+
+      /* An unfinished sale left over from a shutdown / crash / closed
+         page is moved into Held Sales automatically. The cashier then
+         starts with an empty cart and can press Resume on it. */
+      try {
+
+        const saved = JSON.parse(localStorage.getItem(CURRENT_SALE_KEY));
+
+        if (saved && Array.isArray(saved.cart) && saved.cart.length) {
+
+          const when = saved.savedAt ? new Date(saved.savedAt) : new Date();
+
+          const who = String(saved.customerName || '').trim();
+
+          const held = getHeldSales();
+
+          held.push({
+
+            id: Date.now(),
+
+            label:
+              (who ? who + ' — ' : '') +
+              'Auto-saved ' +
+              when.toLocaleString('en-KE', { dateStyle: 'medium', timeStyle: 'short' }),
+
+            cart: saved.cart,
+
+            customerName: saved.customerName || '',
+
+            customerPhone: saved.customerPhone || '',
+
+            heldAt: when.toISOString()
+          });
+
+          saveHeldSales(held);
+        }
+
+        localStorage.removeItem(CURRENT_SALE_KEY);
+
+      } catch (error) {
+
+        console.error('Unable to move the unfinished sale to Held Sales:', error);
+      }
+
+      currentSaleSavingOn = true;
+    }
+
     /* Products with stock AT OR BELOW 5 are considered low stock. */
     const LOW_STOCK_LIMIT = 5;
 
@@ -659,6 +750,9 @@
         }
 
         await loadProducts();
+
+        /* Bring back the sale that was in progress before a shutdown. */
+        restoreCurrentSale();
 
         renderHeldSales();
 
@@ -1146,6 +1240,8 @@
             </tbody>
           </table>`;
       }
+
+      saveCurrentSale();
 
       updateTotals();
     }
@@ -2495,6 +2591,8 @@
     );
 
 
+    document.getElementById('customer-name').addEventListener('input', saveCurrentSale);
+    document.getElementById('customer-phone').addEventListener('input', saveCurrentSale);
     document.getElementById('cash-received').addEventListener('input', updateTotals);
     document.getElementById('payment-method').addEventListener('change', updateTotals);
     updateTotals();
