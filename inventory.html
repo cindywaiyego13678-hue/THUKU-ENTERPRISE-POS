@@ -158,6 +158,10 @@
       <input id="lt-current" disabled>
     </div>
     <div class="field">
+      <label>Send it as which Store product? (the Store price is used)</label>
+      <select id="lt-store-product"><option value="">— choose —</option></select>
+    </div>
+    <div class="field">
       <label>Quantity to send to lorry</label>
       <input id="lt-qty" type="number" min="1" step="any" placeholder="Enter units to send">
     </div>
@@ -562,7 +566,39 @@ function renderNav() {
 
       document.getElementById('lorry-panel').style.display = 'block';
       document.getElementById('lorry-panel-overlay').style.display = 'block';
-      setTimeout(() => document.getElementById('lt-qty').focus(), 50);
+      loadStoreMattressOptions(product);
+    }
+
+    // Store mattress list for the picker (prices come from the Store, never from the shop)
+    function storeLabel(sp) {
+      return [sp.size, sp.name, sp.density, sp.manufacturer ? `— ${sp.manufacturer}` : ''].filter(Boolean).join(' ').trim();
+    }
+
+    async function loadStoreMattressOptions(shopProduct) {
+      const sel = document.getElementById('lt-store-product');
+      sel.innerHTML = '<option value="">Loading Store products...</option>';
+      if (!navigator.onLine) { sel.innerHTML = '<option value="">Needs internet</option>'; return; }
+
+      const { data, error } = await supabaseClient.from('store_products').select('*').eq('is_active', true).order('name');
+      if (error) { sel.innerHTML = '<option value="">Could not load Store products</option>'; console.error(error); return; }
+
+      const list = (data || []).filter(sp => /matt?res/i.test(`${sp.name || ''} ${sp.category || ''}`));
+      sel.innerHTML = '<option value="">— choose the Store product —</option>' + list.map(sp =>
+        `<option value="${escapeAttr(String(sp.id))}">${escapeHtml(storeLabel(sp))} — Ksh ${Number(sp.price || 0).toLocaleString()}</option>`
+      ).join('');
+
+      // Pre-select the likely match (size + brand must both appear in the shop name)
+      const shopName = (shopProduct.name || '').toLowerCase();
+      let best = null, bestScore = 0;
+      list.forEach(sp => {
+        const size = (sp.size || '').toLowerCase().trim();
+        const brand = (sp.manufacturer || '').toLowerCase().trim();
+        const dens = (sp.density || '').toLowerCase().trim();
+        if (!size || !brand || !shopName.includes(size) || !shopName.includes(brand)) return;
+        const score = 2 + (dens && shopName.includes(dens) ? 1 + dens.length / 100 : 0);
+        if (score > bestScore) { best = sp; bestScore = score; }
+      });
+      if (best) sel.value = String(best.id);
     }
 
     function closeLorryPanel() {
@@ -581,6 +617,8 @@ function renderNav() {
       if (!product) return;
       if (!isMattress(product)) return showErr('Only mattresses can be sent to the lorry.');
 
+      const storeId = document.getElementById('lt-store-product').value;
+      if (!storeId) return showErr('Choose which Store product this mattress is sent as.');
       if (!qty || qty <= 0) return showErr('Please enter a valid quantity.');
       if (qty > Number(product.stock_quantity)) return showErr(`Only ${product.stock_quantity} of ${product.name} in shop.`);
       if (!navigator.onLine) return showErr('Sending stock to the lorry needs internet.');
@@ -591,6 +629,7 @@ function renderNav() {
 
       const { error } = await supabaseClient.rpc('transfer_shop_to_lorry', {
         p_product_id: lorryProductId,
+        p_store_product_id: storeId,
         p_quantity: qty,
         p_staff_id: currentStaff.id,
         p_notes: null
