@@ -147,6 +147,25 @@
   </div>
   <div id="restock-panel-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:40;" onclick="closeRestockPanel()"></div>
 
+  <!-- To Lorry modal -->
+  <div id="lorry-panel" class="card" style="display:none; position:fixed; top:10%; left:50%; transform:translateX(-50%); width:90%; max-width:420px; z-index:50; max-height:85vh; overflow-y:auto;">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h3 style="margin:0;">To Lorry: <span id="lt-name"></span></h3>
+      <button class="secondary" onclick="closeLorryPanel()">Close</button>
+    </div>
+    <div class="field" style="margin-top:14px;">
+      <label>In Shop</label>
+      <input id="lt-current" disabled>
+    </div>
+    <div class="field">
+      <label>Quantity to send to lorry</label>
+      <input id="lt-qty" type="number" min="1" step="any" placeholder="Enter units to send">
+    </div>
+    <button onclick="sendToLorry()" id="lt-confirm-btn">Send to Lorry</button>
+    <p class="error-text" id="lt-error" style="display:none;"></p>
+  </div>
+  <div id="lorry-panel-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:40;" onclick="closeLorryPanel()"></div>
+
   <script>
 const CACHE_PREFIX = 'appliance_pos_cache_';
 
@@ -248,7 +267,7 @@ function renderNav() {
       const code = String(rawCode || '').trim();
       if (!code) return false;
 
-      if (panelIsOpen('restock-panel') || panelIsOpen('edit-product-panel')) {
+      if (panelIsOpen('restock-panel') || panelIsOpen('edit-product-panel') || panelIsOpen('lorry-panel')) {
         Scanner.beep(false);
         Scanner.toast('Finish or close the open panel first', 'error');
         return false;
@@ -294,6 +313,11 @@ function renderNav() {
     // Enter in the quantity box confirms the restock (scan -> type qty -> Enter)
     document.getElementById('rs-qty').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') { e.preventDefault(); restock(); }
+    });
+
+    // Enter in the lorry quantity box confirms the transfer
+    document.getElementById('lt-qty').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); sendToLorry(); }
     });
 
     async function addProduct() {
@@ -432,6 +456,7 @@ function renderNav() {
                   <td>
                     <button class="secondary" style="padding:6px 10px; font-size:0.8rem;" onclick='editProduct(${JSON.stringify(p.id)})'>Edit</button>
                     <button class="secondary" style="padding:6px 10px; font-size:0.8rem;" onclick='openRestock(${JSON.stringify(p.id)})'>Restock</button>
+                    <button class="secondary" style="padding:6px 10px; font-size:0.8rem;" onclick='openLorryTransfer(${JSON.stringify(p.id)})'>🚚 To Lorry</button>
                     <button class="danger" style="padding:6px 10px; font-size:0.8rem;" onclick='deleteProduct(${JSON.stringify(p.id)}, ${JSON.stringify(p.name)})'>Delete</button>
                   </td>
                 </tr>`;
@@ -512,6 +537,67 @@ function renderNav() {
       closeRestockPanel();
       Scanner.toast(`${product.name}: +${addQty} (now ${newQty})`);
       if (scanNext) openReceiveCamera();   // camera flow: scan the next item
+    }
+
+    // ---------- send shop stock straight to the lorry ----------
+    let lorryProductId = null;
+
+    function openLorryTransfer(productId) {
+      const product = allProducts.find(p => p.id === productId);
+      if (!product) return;
+      lorryProductId = productId;
+
+      document.getElementById('lt-name').textContent = product.name;
+      document.getElementById('lt-current').value = `${product.stock_quantity} in shop`;
+      document.getElementById('lt-qty').value = '';
+      document.getElementById('lt-error').style.display = 'none';
+      document.getElementById('lt-confirm-btn').disabled = false;
+      document.getElementById('lt-confirm-btn').textContent = 'Send to Lorry';
+
+      document.getElementById('lorry-panel').style.display = 'block';
+      document.getElementById('lorry-panel-overlay').style.display = 'block';
+      setTimeout(() => document.getElementById('lt-qty').focus(), 50);
+    }
+
+    function closeLorryPanel() {
+      document.getElementById('lorry-panel').style.display = 'none';
+      document.getElementById('lorry-panel-overlay').style.display = 'none';
+      lorryProductId = null;
+    }
+
+    async function sendToLorry() {
+      const errorEl = document.getElementById('lt-error');
+      errorEl.style.display = 'none';
+      const showErr = (m) => { errorEl.textContent = m; errorEl.style.display = 'block'; };
+
+      const qty = parseFloat(document.getElementById('lt-qty').value);
+      const product = allProducts.find(p => p.id === lorryProductId);
+      if (!product) return;
+
+      if (!qty || qty <= 0) return showErr('Please enter a valid quantity.');
+      if (qty > Number(product.stock_quantity)) return showErr(`Only ${product.stock_quantity} of ${product.name} in shop.`);
+      if (!navigator.onLine) return showErr('Sending stock to the lorry needs internet.');
+
+      const btn = document.getElementById('lt-confirm-btn');
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+
+      const { error } = await supabaseClient.rpc('transfer_shop_to_lorry', {
+        p_product_id: lorryProductId,
+        p_quantity: qty,
+        p_staff_id: currentStaff.id,
+        p_notes: null
+      });
+
+      btn.disabled = false;
+      btn.textContent = 'Send to Lorry';
+
+      if (error) return showErr('Error: ' + error.message);
+
+      const name = product.name;
+      closeLorryPanel();
+      await loadProducts();
+      Scanner.toast(`${name}: ${qty} sent to lorry`);
     }
 
     async function deleteProduct(productId, productName) {
