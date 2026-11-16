@@ -456,7 +456,7 @@ function renderNav() {
                   <td>
                     <button class="secondary" style="padding:6px 10px; font-size:0.8rem;" onclick='editProduct(${JSON.stringify(p.id)})'>Edit</button>
                     <button class="secondary" style="padding:6px 10px; font-size:0.8rem;" onclick='openRestock(${JSON.stringify(p.id)})'>Restock</button>
-                    <button class="secondary" style="padding:6px 10px; font-size:0.8rem;" onclick='openLorryTransfer(${JSON.stringify(p.id)})'>🚚 To Lorry</button>
+                    ${isMattress(p) ? `<button class="secondary" style="padding:6px 10px; font-size:0.8rem;" onclick='openLorryTransfer(${JSON.stringify(p.id)})'>🚚 To Lorry</button>` : ''}
                     <button class="danger" style="padding:6px 10px; font-size:0.8rem;" onclick='deleteProduct(${JSON.stringify(p.id)}, ${JSON.stringify(p.name)})'>Delete</button>
                   </td>
                 </tr>`;
@@ -542,9 +542,15 @@ function renderNav() {
     // ---------- send shop stock straight to the lorry ----------
     let lorryProductId = null;
 
+    // Only mattresses may be sent to the lorry (matches mattress, mattresses, matress, matresses...)
+    function isMattress(p) {
+      return /matt?res/i.test(`${p.name || ''} ${p.category || ''}`);
+    }
+
     function openLorryTransfer(productId) {
       const product = allProducts.find(p => p.id === productId);
       if (!product) return;
+      if (!isMattress(product)) { alert('Only mattresses can be sent to the lorry.'); return; }
       lorryProductId = productId;
 
       document.getElementById('lt-name').textContent = product.name;
@@ -573,6 +579,7 @@ function renderNav() {
       const qty = parseFloat(document.getElementById('lt-qty').value);
       const product = allProducts.find(p => p.id === lorryProductId);
       if (!product) return;
+      if (!isMattress(product)) return showErr('Only mattresses can be sent to the lorry.');
 
       if (!qty || qty <= 0) return showErr('Please enter a valid quantity.');
       if (qty > Number(product.stock_quantity)) return showErr(`Only ${product.stock_quantity} of ${product.name} in shop.`);
